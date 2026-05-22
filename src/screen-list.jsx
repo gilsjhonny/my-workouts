@@ -1,6 +1,11 @@
-// Workouts list screen.
+import React from 'react';
+import Icon from './icons.jsx';
+import { fmtRelative } from './parser.js';
+import { RoutineNamesContext } from './contexts.js';
+import { BottomTabs } from './screen-folders.jsx';
+
 function ListScreen({ workouts, onOpen, onReimport }) {
-  const routineNames = React.useContext(window.RoutineNamesContext);
+  const routineNames = React.useContext(RoutineNamesContext);
   const [query, setQuery] = React.useState('');
   const [showAll, setShowAll] = React.useState(false);
 
@@ -46,7 +51,7 @@ function ListScreen({ workouts, onOpen, onReimport }) {
             <span>·</span>
             <span><span className="stat-num">{mostRecent.exerciseCount}</span> ejercicios</span>
             <span>·</span>
-            <span>{window.WorkoutParser.fmtRelative(mostRecent.lastDate)}</span>
+            <span>{fmtRelative(mostRecent.lastDate)}</span>
           </div>
           <button className="cta">
             <span>Ver sesiones</span>
@@ -93,7 +98,7 @@ function ListScreen({ workouts, onOpen, onReimport }) {
                 <span className="dot" />
                 <span>{w.exerciseCount} ej</span>
                 <span className="dot" />
-                <span>{window.WorkoutParser.fmtRelative(w.lastDate)}</span>
+                <span>{fmtRelative(w.lastDate)}</span>
               </div>
             </div>
             <span className="chev"><Icon.Chevron /></span>
@@ -116,16 +121,14 @@ function ListScreen({ workouts, onOpen, onReimport }) {
   );
 }
 
-function initials(title) {
-  // Take first letters of meaningful words, max 2 chars
+export function initials(title) {
   const cleaned = title
-    .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, '') // strip emoji
+    .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, '')
     .replace(/[()#:\-_/]/g, ' ')
     .trim();
   const parts = cleaned.split(/\s+/).filter(Boolean);
   if (parts.length === 0) return 'W';
 
-  // Special case: starts with DAY N or Day N → use Dx
   const dayMatch = title.match(/day\s*(\d+)/i);
   if (dayMatch) return 'D' + dayMatch[1];
 
@@ -133,5 +136,4 @@ function initials(title) {
   return (parts[0][0] + (parts[1][0] || '')).toUpperCase();
 }
 
-window.ListScreen = ListScreen;
-window.initials = initials;
+export default ListScreen;

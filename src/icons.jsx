@@ -1,4 +1,5 @@
-// Inline SVG icons. Keep stroke-based, minimal, 1.75 stroke.
+import React from 'react';
+
 const Icon = {
   Chevron: ({ size = 18, dir = 'right', color = 'currentColor' }) => {
     const rot = { right: 0, down: 90, left: 180, up: -90 }[dir] || 0;
@@ -130,4 +131,4 @@ const Icon = {
   ),
 };
 
-window.Icon = Icon;
+export default Icon;

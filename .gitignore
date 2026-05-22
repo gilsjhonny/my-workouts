@@ -10,9 +10,10 @@ Thumbs.db
 sample_data.csv
 uploads/
 
-# Node (in case you add tooling later)
+# Node
 node_modules/
 .npm/
+dist/
 
 # Vercel
 .vercel

@@ -1,5 +1,8 @@
-// Folder list and folder detail screens.
-// Folders are user-curated groups of workout titles, persisted in localStorage.
+import React from 'react';
+import Icon from './icons.jsx';
+import { fmtRelative } from './parser.js';
+import { RoutineNamesContext } from './contexts.js';
+import { initials } from './screen-list.jsx';
 
 function FolderListScreen({ folders, onOpen, onCreate, onReimport }) {
   const [creating, setCreating] = React.useState(false);
@@ -77,7 +80,7 @@ function FolderListScreen({ folders, onOpen, onCreate, onReimport }) {
               <div className="meta">
                 <span>{f.routineTitles.length} rutina{f.routineTitles.length === 1 ? '' : 's'}</span>
                 <span className="dot" />
-                <span>{window.WorkoutParser.fmtRelative(f.createdAt)}</span>
+                <span>{fmtRelative(f.createdAt)}</span>
               </div>
             </div>
             <span className="chev"><Icon.Chevron /></span>
@@ -91,7 +94,7 @@ function FolderListScreen({ folders, onOpen, onCreate, onReimport }) {
 }
 
 function FolderDetailScreen({ folder, workouts, onBack, onOpenRoutine, onRename, onDelete, onUpdateRoutines }) {
-  const routineNames = React.useContext(window.RoutineNamesContext);
+  const routineNames = React.useContext(RoutineNamesContext);
   const [editingName, setEditingName] = React.useState(false);
   const [draft, setDraft] = React.useState(folder.name);
   const [picking, setPicking] = React.useState(false);
@@ -171,7 +174,7 @@ function FolderDetailScreen({ folder, workouts, onBack, onOpenRoutine, onRename,
         <div className="when">
           <span>{inFolder.length} rutina{inFolder.length === 1 ? '' : 's'}</span>
           <span className="dot" />
-          <span>creada {window.WorkoutParser.fmtRelative(folder.createdAt)}</span>
+          <span>creada {fmtRelative(folder.createdAt)}</span>
         </div>
       </div>
 
@@ -196,7 +199,7 @@ function FolderDetailScreen({ folder, workouts, onBack, onOpenRoutine, onRename,
               onClick={() => onOpenRoutine(w.title)}
             >
               <div className="badge">
-                <span className="glyph">{window.initials(routineNames.get(w.title))}</span>
+                <span className="glyph">{initials(routineNames.get(w.title))}</span>
               </div>
               <div className="main">
                 <div className="name">
@@ -208,7 +211,7 @@ function FolderDetailScreen({ folder, workouts, onBack, onOpenRoutine, onRename,
                   <span className="dot" />
                   <span>{w.exerciseCount} ej</span>
                   <span className="dot" />
-                  <span>{window.WorkoutParser.fmtRelative(w.lastDate)}</span>
+                  <span>{fmtRelative(w.lastDate)}</span>
                 </div>
               </div>
               <span className="chev"><Icon.Chevron /></span>
@@ -225,7 +228,7 @@ function FolderDetailScreen({ folder, workouts, onBack, onOpenRoutine, onRename,
 }
 
 function RoutinePicker({ workouts, initialSelected, folderName, onCancel, onConfirm }) {
-  const routineNames = React.useContext(window.RoutineNamesContext);
+  const routineNames = React.useContext(RoutineNamesContext);
   const [selected, setSelected] = React.useState(new Set(initialSelected));
   const [query, setQuery] = React.useState('');
 
@@ -286,7 +289,7 @@ function RoutinePicker({ workouts, initialSelected, folderName, onCancel, onConf
                 <div className="meta">
                   <span>{w.sessionCount} {w.sessionCount === 1 ? 'sesión' : 'sesiones'}</span>
                   <span className="dot" />
-                  <span>{window.WorkoutParser.fmtRelative(w.lastDate)}</span>
+                  <span>{fmtRelative(w.lastDate)}</span>
                 </div>
               </div>
             </button>
@@ -305,9 +308,7 @@ function RoutinePicker({ workouts, initialSelected, folderName, onCancel, onConf
   );
 }
 
-/* ---------- Bottom tab bar (shared) ---------- */
-function BottomTabs({ active, onChange }) {
-  // Routing via global event: app.jsx attaches a listener for 'tabchange'.
+export function BottomTabs({ active, onChange }) {
   const switchTo = (key) => {
     if (onChange) onChange(key);
     else window.dispatchEvent(new CustomEvent('tabchange', { detail: key }));
@@ -326,6 +327,4 @@ function BottomTabs({ active, onChange }) {
   );
 }
 
-window.FolderListScreen = FolderListScreen;
-window.FolderDetailScreen = FolderDetailScreen;
-window.BottomTabs = BottomTabs;
+export { FolderListScreen, FolderDetailScreen };

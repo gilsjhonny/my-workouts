@@ -1,14 +1,12 @@
-// Exercise detail screen — full history across all routines + headline stats.
-
-// Helpers imported from screen-detail.jsx (which loads first via index.html order).
-const SetMini = window.SetMini;
-const formatNum = window.formatNum;
-const topSetOf = window.topSetOf;
-const shortRoutine = window.shortRoutine;
+import React from 'react';
+import Icon from './icons.jsx';
+import { exerciseHistoryAll } from './parser.js';
+import { ExerciseNamesContext, RoutineNamesContext } from './contexts.js';
+import { SetMini, formatNum, topSetOf, shortRoutine } from './screen-detail.jsx';
 
 function ExerciseScreen({ exerciseName, workouts, onBack }) {
-  const names = React.useContext(window.ExerciseNamesContext);
-  const routineNames = React.useContext(window.RoutineNamesContext);
+  const names = React.useContext(ExerciseNamesContext);
+  const routineNames = React.useContext(RoutineNamesContext);
   const displayName = names.get(exerciseName);
   const renamed = names.hasRename(exerciseName);
 
@@ -21,11 +19,10 @@ function ExerciseScreen({ exerciseName, workouts, onBack }) {
   }, [editing]);
 
   const history = React.useMemo(
-    () => window.WorkoutParser.exerciseHistoryAll(workouts, exerciseName),
+    () => exerciseHistoryAll(workouts, exerciseName),
     [workouts, exerciseName]
   );
 
-  // ---------- stats ----------
   const stats = React.useMemo(() => computeStats(history), [history]);
 
   if (history.length === 0) {
@@ -116,17 +113,14 @@ function ExerciseScreen({ exerciseName, workouts, onBack }) {
 }
 
 function computeStats(history) {
-  // history is desc by date.
-  let heaviest = null;            // max absolute weight
-  let bestRepsByWeight = null;    // max (reps × weight) product per single set
+  let heaviest = null;
+  let bestRepsByWeight = null;
   for (const h of history) {
     for (const s of h.ex.sets) {
       if (s.setType === 'warmup' || !s.weight || !s.reps) continue;
-      // Heaviest absolute weight
       if (!heaviest || s.weight > heaviest.weight || (s.weight === heaviest.weight && s.reps > heaviest.reps)) {
         heaviest = { weight: s.weight, reps: s.reps, date: h.session.startTime, routine: h.session.title };
       }
-      // Best by reps × weight (single-set volume)
       const score = s.reps * s.weight;
       if (!bestRepsByWeight || score > bestRepsByWeight.score) {
         bestRepsByWeight = { weight: s.weight, reps: s.reps, score, date: h.session.startTime, routine: h.session.title };
@@ -142,9 +136,8 @@ function computeStats(history) {
     ? (first.getTime() === last.getTime()
         ? fmtFull(first)
         : `${fmtFull(first)} → ${fmtFull(last)}`)
-    : '—';;
+    : '—';
 
-  // Frequency in sessions per month over the span
   let frequency = '—';
   if (first && last && sessionCount > 1) {
     const months = Math.max(1, (last - first) / (1000 * 60 * 60 * 24 * 30));
@@ -154,7 +147,6 @@ function computeStats(history) {
     frequency = sessionCount === 1 ? 'única' : '—';
   }
 
-  // Progression: top set kg first session → last session
   const topSetOfEntry = (h) => {
     let best = null;
     for (const s of h.ex.sets) {
@@ -187,9 +179,7 @@ function StatCard({ label, value, sub, highlight, tone }) {
   );
 }
 
-// ---- chart ----
 function TopSetChart({ history }) {
-  // chrono asc
   const series = history.slice().reverse().map(h => {
     let top = null;
     for (const s of h.ex.sets) {
@@ -222,8 +212,6 @@ function TopSetChart({ history }) {
   const diff = last.weight - first.weight;
   const tone = diff > 0 ? 'up' : diff < 0 ? 'down' : 'flat';
 
-  // Year boundary markers: when data spans multiple years, draw a faint vertical
-  // line + year label at each January 1st that falls inside the range.
   const yearTicks = [];
   const firstYear = first.date.getFullYear();
   const lastYear = last.date.getFullYear();
@@ -255,7 +243,6 @@ function TopSetChart({ history }) {
       </svg>
       {yearTicks.length > 0 && (
         <div className="ex-chart-years" style={{ position: 'relative', height: 14, margin: '2px 0 0' }}>
-          {/* first year on the left */}
           <span className="yr-tick" style={{ left: `${(P / W) * 100}%` }}>{firstYear}</span>
           {yearTicks.map(t => (
             <span key={t.year} className="yr-tick" style={{ left: `${(t.x / W) * 100}%` }}>{t.year}</span>
@@ -270,11 +257,9 @@ function TopSetChart({ history }) {
   );
 }
 
-// ---- full history grid ----
 function FullHistoryGrid({ history }) {
-  // Show all sessions chronological ASC (left → right). Rightmost is the most recent.
-  const routineNames = React.useContext(window.RoutineNamesContext);
-  const display = history.slice().reverse(); // ascending
+  const routineNames = React.useContext(RoutineNamesContext);
+  const display = history.slice().reverse();
   const lastIdx = display.length - 1;
   const maxSets = display.reduce((m, h) => Math.max(m, h.ex.sets.length), 0);
   const rows = Array.from({ length: maxSets }, (_, i) => i);
@@ -346,4 +331,4 @@ function FullHistoryGrid({ history }) {
   );
 }
 
-window.ExerciseScreen = ExerciseScreen;
+export default ExerciseScreen;

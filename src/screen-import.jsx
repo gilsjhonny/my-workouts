@@ -1,4 +1,7 @@
-// Import screen — file picker (with demo data option).
+import React from 'react';
+import { parseCSV } from './parser.js';
+import Icon from './icons.jsx';
+
 function ImportScreen({ onImport, onLoadDemo, hasData, onContinue }) {
   const [dragOver, setDragOver] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
@@ -13,7 +16,7 @@ function ImportScreen({ onImport, onLoadDemo, hasData, onContinue }) {
     reader.onload = (e) => {
       try {
         const text = e.target.result;
-        const { sets, errors } = window.WorkoutParser.parseCSV(text);
+        const { sets, errors } = parseCSV(text);
         if (errors.length) { setError(errors.join('; ')); setLoading(false); return; }
         if (!sets.length) { setError('No se encontraron filas.'); setLoading(false); return; }
         onImport(sets, file.name, text);
@@ -108,4 +111,4 @@ function ImportScreen({ onImport, onLoadDemo, hasData, onContinue }) {
   );
 }
 
-window.ImportScreen = ImportScreen;
+export default ImportScreen;

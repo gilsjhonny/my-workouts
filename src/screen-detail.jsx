@@ -1,8 +1,11 @@
-// Workout detail screen — per-exercise progress vs previous session.
+import React from 'react';
+import Icon from './icons.jsx';
+import { fmtDate, fmtDateShort, exerciseHistory } from './parser.js';
+import { ExerciseNamesContext, RoutineNamesContext } from './contexts.js';
+
 function DetailScreen({ workout, workouts, onBack, onOpenExercise, tweaks }) {
-  const names = React.useContext(window.ExerciseNamesContext);
-  const routineNames = React.useContext(window.RoutineNamesContext);
-  // Sessions are already sorted desc. Selected index defaults to most recent (0).
+  const names = React.useContext(ExerciseNamesContext);
+  const routineNames = React.useContext(RoutineNamesContext);
   const [selectedIdx, setSelectedIdx] = React.useState(0);
   const [openExercise, setOpenExercise] = React.useState(null);
   const [editingTitle, setEditingTitle] = React.useState(false);
@@ -34,7 +37,7 @@ function DetailScreen({ workout, workouts, onBack, onOpenExercise, tweaks }) {
   }
 
   const session = workout.sessions[selectedIdx];
-  const baselineMode = tweaks.baseline || 'previous'; // 'previous' | 'best' | 'first'
+  const baselineMode = tweaks.baseline || 'previous';
 
   if (!session) return null;
 
@@ -86,7 +89,7 @@ function DetailScreen({ workout, workouts, onBack, onOpenExercise, tweaks }) {
         )}
         <div className="when">
           <Icon.Calendar size={13} />
-          <span>{window.WorkoutParser.fmtDate(session.startTime)}</span>
+          <span>{fmtDate(session.startTime)}</span>
           <span className="dot" />
           <Icon.Clock size={13} />
           <span>{session.durationMin != null ? session.durationMin + ' min' : '—'}</span>
@@ -165,7 +168,7 @@ function DetailScreen({ workout, workouts, onBack, onOpenExercise, tweaks }) {
 }
 
 function ExerciseCard({ workout, workouts, exercise, currentSession, currentSessionIdx, isOpen, onToggle, onOpenExercise, baselineMode, deltaStyle, tweaks, animIdx }) {
-  const names = React.useContext(window.ExerciseNamesContext);
+  const names = React.useContext(ExerciseNamesContext);
   const [editing, setEditing] = React.useState(false);
   const [draft, setDraft] = React.useState('');
   const inputRef = React.useRef(null);
@@ -197,20 +200,17 @@ function ExerciseCard({ workout, workouts, exercise, currentSession, currentSess
   }
 
   const history = React.useMemo(
-    () => window.WorkoutParser.exerciseHistory(workout, exercise.name),
+    () => exerciseHistory(workout, exercise.name),
     [workout, exercise.name]
   );
 
-  // history is desc by date. Find current entry.
   const currentEntry = history.find(h => h.session.key === currentSession.key);
   const currentIdxInHistory = history.indexOf(currentEntry);
 
-  // baseline selection
   let baselineEntry = null;
   if (baselineMode === 'previous') {
-    baselineEntry = history[currentIdxInHistory + 1] || null; // next item in desc order = previous in time
+    baselineEntry = history[currentIdxInHistory + 1] || null;
   } else if (baselineMode === 'best') {
-    // best by topSetWeight (excluding current)
     const others = history.filter((_, i) => i !== currentIdxInHistory);
     baselineEntry = others.sort((a, b) => b.topSetWeight - a.topSetWeight || b.totalVolume - a.totalVolume)[0] || null;
   } else if (baselineMode === 'first') {
@@ -218,14 +218,12 @@ function ExerciseCard({ workout, workouts, exercise, currentSession, currentSess
     baselineEntry = earlier[earlier.length - 1] || null;
   }
 
-  // Personal best in entire history (for PR badges)
   const pbTopSetWeight = history.reduce((m, h) => Math.max(m, h.topSetWeight), 0);
   const pbTopReps = history.reduce((m, h) => {
     const maxRepAtAnyWeight = Math.max(...h.workSets.map(s => s.reps || 0), 0);
     return Math.max(m, maxRepAtAnyWeight);
   }, 0);
 
-  // Summary numbers for current
   const cur = currentEntry || { topSetWeight: 0, topReps: 0, totalVolume: 0, workSets: exercise.sets.filter(s => s.setType !== 'warmup') };
   const base = baselineEntry;
 
@@ -312,22 +310,21 @@ function ExerciseCard({ workout, workouts, exercise, currentSession, currentSess
 }
 
 function baselineLabel(base, mode) {
-  const d = window.WorkoutParser.fmtDateShort(base.session.startTime);
+  const d = fmtDateShort(base.session.startTime);
   if (mode === 'previous') return 'Anterior · ' + d;
   if (mode === 'best') return 'Mejor · ' + d;
   if (mode === 'first') return 'Primera · ' + d;
   return d;
 }
 
-function shortRoutine(title) {
+export function shortRoutine(title) {
   if (!title) return '';
-  // Strip emoji + collapse, take up to ~12 chars
   const cleaned = title.replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, '').trim();
   if (cleaned.length <= 12) return cleaned;
   return cleaned.slice(0, 11) + '…';
 }
 
-function topSetOf(sets) {
+export function topSetOf(sets) {
   let best = null;
   for (const s of sets) {
     if (!s.weight || !s.reps) continue;
@@ -349,7 +346,7 @@ function deltaNum(cur, base, suffix = '', lowerIsHarder = false) {
   const diff = cur - base;
   if (Math.abs(diff) < 0.05) return { dir: 'flat', text: 'igual' };
   let dir = diff > 0 ? 'up' : 'down';
-  if (lowerIsHarder) dir = diff < 0 ? 'up' : 'down'; // lower RIR = harder set = good
+  if (lowerIsHarder) dir = diff < 0 ? 'up' : 'down';
   const sign = diff > 0 ? '+' : '';
   return { dir, text: `${sign}${formatNum(diff)}${suffix ? ' ' + suffix : ''}` };
 }
@@ -370,7 +367,6 @@ function DeltaBadge({ delta, style }) {
   if (style === 'numeric') {
     return <span className={'delta ' + delta.dir}>{delta.text}</span>;
   }
-  // arrows
   const Arrow = delta.dir === 'up' ? Icon.ArrowUp : delta.dir === 'down' ? Icon.ArrowDown : Icon.Equals;
   return (
     <span className={'delta ' + delta.dir}>
@@ -379,16 +375,14 @@ function DeltaBadge({ delta, style }) {
   );
 }
 
-function formatNum(n) {
+export function formatNum(n) {
   if (n == null) return '—';
   if (Math.abs(n) >= 1000) return n.toLocaleString(undefined, { maximumFractionDigits: 0 });
   if (Number.isInteger(n)) return n.toString();
   return n.toFixed(1).replace(/\.0$/, '');
 }
 
-/* ---------- Sparkline ---------- */
 function Sparkline({ history, currentKey }) {
-  // chrono asc for plotting
   const series = history.slice().reverse().map(h => ({
     key: h.session.key,
     date: h.session.startTime,
@@ -423,13 +417,13 @@ function Sparkline({ history, currentKey }) {
           {trendDir === 'up' && <Icon.ArrowUp size={10}/>}
           {trendDir === 'down' && <Icon.ArrowDown size={10}/>}
           {trendDir === 'flat' && <Icon.Equals size={10}/>}
-          {diff > 0 ? '+' : ''}{formatNum(diff)} kg en {series.length} sesiones
+          {diff > 0 ? '+' : ''}{formatNum(diff)} kg en {series.length} sesiones
         </div>
       </div>
       <div className="trend-body">
         <span className="trend-edge">
           <span className="v">{formatNum(firstPt.val)}kg</span>
-          <span className="d">{window.WorkoutParser.fmtDateShort(firstPt.date)}</span>
+          <span className="d">{fmtDateShort(firstPt.date)}</span>
         </span>
         <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="trend-svg">
           <path d={areaPath} fill="var(--accent)" opacity="0.22" />
@@ -446,29 +440,21 @@ function Sparkline({ history, currentKey }) {
   );
 }
 
-/* ---------- Multi-session history grid ---------- */
 function HistoryTable({ history, currentKey, currentRoutineTitle, baselineMode, notes, pbTopSetWeight }) {
-  // history is desc (newest first). Find current index, then build the list to display:
-  // current + the sessions BEFORE it (older). Default to up to 5 sessions total.
   const [showAll, setShowAll] = React.useState(false);
   const curIdx = history.findIndex(h => h.session.key === currentKey);
   const fromCur = curIdx >= 0 ? history.slice(curIdx) : history;
   const initialN = 5;
-  // fromCur is desc: [current, prev1, prev2, ...]
-  // Display order (left → right) = OLDEST → NEWEST, with current sticky-right.
   const descSlice = showAll ? fromCur : fromCur.slice(0, initialN);
-  const display = descSlice.slice().reverse(); // now ascending in time, last = current
+  const display = descSlice.slice().reverse();
   const lastIdx = display.length - 1;
   const currentSessionDate = curIdx >= 0 ? history[curIdx].session.startTime : null;
 
   const maxSets = display.reduce((m, h) => Math.max(m, h.ex.sets.length), 0);
   const rows = Array.from({ length: maxSets }, (_, i) => i);
 
-  // Top set per column (excluding warmups). Tracked by the set object reference.
   const tops = display.map(h => topSetOf(h.ex.sets.filter(s => s.setType !== 'warmup')));
 
-  // Scroll the grid to its right edge on mount / when display length changes so
-  // the current (sticky-right) column lines up with the prior column visible.
   const wrapRef = React.useRef(null);
   React.useLayoutEffect(() => {
     if (wrapRef.current) wrapRef.current.scrollLeft = wrapRef.current.scrollWidth;
@@ -484,9 +470,9 @@ function HistoryTable({ history, currentKey, currentRoutineTitle, baselineMode, 
       {notes && (
         <div className="session-note">
           <div className="session-note-label">
-            Nota de la sesión {currentSessionDate ? '· ' + window.WorkoutParser.fmtDateShort(currentSessionDate) : ''}
+            Nota de la sesión {currentSessionDate ? '· ' + fmtDateShort(currentSessionDate) : ''}
           </div>
-          <div className="session-note-body">“{notes}”</div>
+          <div className="session-note-body">"{notes}"</div>
         </div>
       )}
 
@@ -515,7 +501,6 @@ function HistoryTable({ history, currentKey, currentRoutineTitle, baselineMode, 
         {display.length > 1 ? (
           <div className="history-scroll" ref={wrapRef}>
             <div className="history-grid old" style={{ gridTemplateColumns: `28px repeat(${display.length - 1}, minmax(88px, 1fr))` }}>
-              {/* header row */}
               <div className="hcell idx">#</div>
               {display.slice(0, lastIdx).map((h) => (
                 <div key={h.session.key} className="hcell head">
@@ -527,7 +512,6 @@ function HistoryTable({ history, currentKey, currentRoutineTitle, baselineMode, 
                 </div>
               ))}
 
-              {/* set rows */}
               {rows.map(rIdx => (
                 <React.Fragment key={rIdx}>
                   <div className="hcell idx">{rIdx + 1}</div>
@@ -573,9 +557,7 @@ function HistoryTable({ history, currentKey, currentRoutineTitle, baselineMode, 
   );
 }
 
-// (legacy bottom 'Ver más' button removed — replaced by floating chevron FAB)
-
-function SetMini({ set, prev, isTop }) {
+export function SetMini({ set, prev, isTop }) {
   if (!set) return <div className="setmini empty">—</div>;
   const isWarmup = set.setType === 'warmup';
   const isFailure = set.setType === 'failure';
@@ -583,7 +565,6 @@ function SetMini({ set, prev, isTop }) {
   const rir = set.rir;
   const rirText = rir != null ? `RIR ${rir}` : (set.rpe != null ? `RPE ${set.rpe}` : '');
 
-  // delta vs prev (only on current column)
   let deltaEl = null;
   if (prev && !isWarmup && prev.setType !== 'warmup') {
     const wDiff = (set.weight || 0) - (prev.weight || 0);
@@ -598,7 +579,7 @@ function SetMini({ set, prev, isTop }) {
       if (Math.abs(rirDiff) >= 0.5) {
         const sign = rirDiff > 0 ? '+' : '';
         dir = rirDiff < 0 ? 'up' : 'down';
-        text = `${sign}${rirDiff} RIR`;
+        text = `${sign}${rirDiff} RIR`;
       }
     }
     const Arrow = dir === 'up' ? Icon.ArrowUp : dir === 'down' ? Icon.ArrowDown : Icon.Equals;
@@ -628,12 +609,10 @@ function SetMini({ set, prev, isTop }) {
   );
 }
 
-/* ---------- (legacy) Sets comparison table ---------- */
 function SetsTable({ current, baseline, baselineMode, baselineLabel, notes }) {
   const curSets = current.workSets;
   const baseSets = baseline ? baseline.workSets : [];
 
-  // Show union by set index
   const maxLen = Math.max(curSets.length, baseSets.length);
   const rows = [];
   for (let i = 0; i < maxLen; i++) {
@@ -644,7 +623,7 @@ function SetsTable({ current, baseline, baselineMode, baselineLabel, notes }) {
     <div className="sets fade-in">
       {notes && (
         <div style={{ fontSize: 12.5, color: 'var(--ink-2)', padding: '0 4px 10px', borderBottom: '1px solid var(--line)', marginBottom: 10, fontStyle: 'italic' }}>
-          “{notes}”
+          "{notes}"
         </div>
       )}
       <div className="head">
@@ -696,19 +675,17 @@ function SetDeltaPill({ cur, prev }) {
   if (!cur || !prev || prev.setType === 'warmup') return null;
   const wDiff = (cur.weight || 0) - (prev.weight || 0);
   const rDiff = (cur.reps || 0) - (prev.reps || 0);
-  // Score: positive if more weight at same reps, or same weight more reps
   let dir = 'flat', text = 'igual';
   if (wDiff > 0) { dir = 'up'; text = `+${formatNum(wDiff)}kg`; }
   else if (wDiff < 0) { dir = 'down'; text = `${formatNum(wDiff)}kg`; }
   else if (rDiff > 0) { dir = 'up'; text = `+${rDiff} rep`; }
   else if (rDiff < 0) { dir = 'down'; text = `${rDiff} rep`; }
 
-  // RIR overlay: if same weight × reps, compare RIR
   if (wDiff === 0 && rDiff === 0 && cur.rir != null && prev.rir != null) {
     const rirDiff = cur.rir - prev.rir;
     if (Math.abs(rirDiff) >= 0.5) {
       const sign = rirDiff > 0 ? '+' : '';
-      dir = rirDiff < 0 ? 'up' : 'down'; // lower RIR = harder = improvement
+      dir = rirDiff < 0 ? 'up' : 'down';
       text = `${sign}${rirDiff} RIR`;
     }
   }
@@ -717,8 +694,4 @@ function SetDeltaPill({ cur, prev }) {
   return <span className={'pill ' + dir}><Arrow size={9} /> {text}</span>;
 }
 
-window.DetailScreen = DetailScreen;
-window.SetMini = SetMini;
-window.formatNum = formatNum;
-window.topSetOf = topSetOf;
-window.shortRoutine = shortRoutine;
+export default DetailScreen;

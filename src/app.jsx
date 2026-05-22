@@ -1,4 +1,12 @@
-// Main app — routing + tweak controls + data lifecycle.
+import React from 'react';
+import { parseCSV, buildModel } from './parser.js';
+import { ExerciseNamesContext, RoutineNamesContext } from './contexts.js';
+import { useTweaks, TweaksPanel, TweakSection, TweakColor, TweakRadio } from './tweaks-panel.jsx';
+import ImportScreen from './screen-import.jsx';
+import ListScreen from './screen-list.jsx';
+import { FolderListScreen, FolderDetailScreen } from './screen-folders.jsx';
+import DetailScreen from './screen-detail.jsx';
+import ExerciseScreen from './screen-exercise.jsx';
 
 const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
   "accent": "lime",
@@ -18,13 +26,6 @@ const NAME_KEY = 'workout_tracker_filename_v1';
 const RENAMES_KEY = 'workout_exercise_renames_v1';
 const ROUTINE_RENAMES_KEY = 'workout_routine_renames_v1';
 const FOLDERS_KEY = 'workout_folders_v1';
-
-// Context for exercise rename mapping.
-const ExerciseNamesContext = React.createContext({ get: x => x, rename: () => {}, hasRename: () => false });
-window.ExerciseNamesContext = ExerciseNamesContext;
-// Context for routine (workout title) rename mapping.
-const RoutineNamesContext = React.createContext({ get: x => x, rename: () => {}, hasRename: () => false });
-window.RoutineNamesContext = RoutineNamesContext;
 
 function App() {
   const [tweaks, setTweaksRaw] = useTweaks(TWEAK_DEFAULTS);
@@ -95,25 +96,22 @@ function App() {
     return () => window.removeEventListener('tabchange', handler);
   }, []);
 
-  // Apply accent CSS vars when tweak changes
   React.useEffect(() => {
     const preset = ACCENT_PRESETS[tweaks.accent] || ACCENT_PRESETS.lime;
     document.documentElement.style.setProperty('--accent', preset.accent);
     document.documentElement.style.setProperty('--accent-soft', preset.soft);
   }, [tweaks.accent]);
 
-  // Reset scroll on route change so each screen lands at the top.
   React.useEffect(() => {
     window.scrollTo(0, 0);
   }, [route.name, route.title, route.id, route.exerciseName]);
 
-  // Boot — try localStorage
   React.useEffect(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       const storedName = localStorage.getItem(NAME_KEY);
       if (stored) {
-        const { sets, errors } = window.WorkoutParser.parseCSV(stored);
+        const { sets, errors } = parseCSV(stored);
         if (sets.length) {
           setSets(sets);
           setFilename(storedName || 'data.csv');
@@ -128,7 +126,7 @@ function App() {
 
   const workouts = React.useMemo(() => {
     if (!sets) return [];
-    return window.WorkoutParser.buildModel(sets);
+    return buildModel(sets);
   }, [sets]);
 
   function persistCSV(text, name) {
@@ -151,7 +149,7 @@ function App() {
     try {
       const res = await fetch('sample_data.csv');
       const text = await res.text();
-      const { sets, errors } = window.WorkoutParser.parseCSV(text);
+      const { sets, errors } = parseCSV(text);
       if (errors.length) throw new Error(errors.join('; '));
       setSets(sets);
       setFilename('sample_data.csv');
@@ -262,7 +260,6 @@ function App() {
   );
 }
 
-// Tweaks UI ---------- */
 function TweaksUI({ tweaks, setTweak }) {
   return (
     <TweaksPanel title="Ajustes">
@@ -302,4 +299,4 @@ function TweaksUI({ tweaks, setTweak }) {
   );
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+export default App;
