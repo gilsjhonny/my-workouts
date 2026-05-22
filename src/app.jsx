@@ -1,6 +1,7 @@
 import React from 'react';
 import { parseCSV, buildModel } from './parser.js';
 import { ExerciseNamesContext, RoutineNamesContext } from './contexts.js';
+import { storageGet, storageSet, storageDelete } from './storage.js';
 import { useTweaks, TweaksPanel, TweakSection, TweakColor, TweakRadio } from './tweaks-panel.jsx';
 import ImportScreen from './screen-import.jsx';
 import ListScreen from './screen-list.jsx';
@@ -107,21 +108,23 @@ function App() {
   }, [route.name, route.title, route.id, route.exerciseName]);
 
   React.useEffect(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      const storedName = localStorage.getItem(NAME_KEY);
-      if (stored) {
-        const { sets, errors } = parseCSV(stored);
-        if (sets.length) {
-          setSets(sets);
-          setFilename(storedName || 'data.csv');
-          setRoute({ name: 'list' });
+    (async () => {
+      try {
+        const stored = await storageGet(STORAGE_KEY);
+        const storedName = await storageGet(NAME_KEY);
+        if (stored) {
+          const { sets } = parseCSV(stored);
+          if (sets.length) {
+            setSets(sets);
+            setFilename(storedName || 'data.csv');
+            setRoute({ name: 'list' });
+          }
         }
+      } catch (e) {
+        console.warn('Could not restore data:', e);
       }
-    } catch (e) {
-      console.warn('Could not restore data:', e);
-    }
-    setLoadingInitial(false);
+      setLoadingInitial(false);
+    })();
   }, []);
 
   const workouts = React.useMemo(() => {
@@ -130,12 +133,8 @@ function App() {
   }, [sets]);
 
   function persistCSV(text, name) {
-    try {
-      localStorage.setItem(STORAGE_KEY, text);
-      localStorage.setItem(NAME_KEY, name || 'data.csv');
-    } catch (e) {
-      console.warn('Could not persist CSV (size/quota):', e);
-    }
+    storageSet(STORAGE_KEY, text).catch(e => console.warn('Could not persist CSV:', e));
+    storageSet(NAME_KEY, name || 'data.csv').catch(() => {});
   }
 
   function onImport(parsedSets, name, rawText) {
@@ -163,7 +162,8 @@ function App() {
 
   function onReimport() {
     if (confirm('¿Descartar los datos actuales e importar un archivo nuevo?')) {
-      try { localStorage.removeItem(STORAGE_KEY); localStorage.removeItem(NAME_KEY); } catch (_) {}
+      storageDelete(STORAGE_KEY).catch(() => {});
+      storageDelete(NAME_KEY).catch(() => {});
       setSets(null);
       setRoute({ name: 'import' });
     }
