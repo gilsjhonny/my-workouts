@@ -115,7 +115,8 @@ function FolderDetailScreen({ folder, workouts, onBack, onOpenRoutine, onRename,
 
   const inFolder = folder.routineTitles
     .map(t => workouts.find(w => w.title === t))
-    .filter(Boolean);
+    .filter(Boolean)
+    .sort((a, b) => routineNames.get(a.title).localeCompare(routineNames.get(b.title)));
 
   function removeFromFolder(title) {
     const display = routineNames.get(title);
