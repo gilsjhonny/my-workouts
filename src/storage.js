@@ -1,4 +1,5 @@
 import { openDB } from 'idb';
+import { cloudSet, cloudGet, cloudDelete, cloudGetAll } from './firebase.js';
 
 const DB_NAME = 'workout-tracker';
 const DB_VERSION = 1;
@@ -16,6 +17,11 @@ function getDB() {
   return dbPromise;
 }
 
+let _uid = null;
+export function setStorageUser(uid) {
+  _uid = uid;
+}
+
 export async function storageGet(key) {
   try {
     return await (await getDB()).get(STORE, key);
@@ -30,6 +36,7 @@ export async function storageSet(key, value) {
   } catch {
     try { localStorage.setItem(key, value); } catch {}
   }
+  if (_uid) cloudSet(_uid, key, value).catch(() => {});
 }
 
 export async function storageDelete(key) {
@@ -38,4 +45,14 @@ export async function storageDelete(key) {
   } catch {
     try { localStorage.removeItem(key); } catch {}
   }
+  if (_uid) cloudDelete(_uid, key).catch(() => {});
+}
+
+export async function syncFromCloud(uid) {
+  const all = await cloudGetAll(uid);
+  const db = await getDB();
+  const tx = db.transaction(STORE, 'readwrite');
+  await Promise.all(Object.entries(all).map(([k, v]) => tx.store.put(v, k)));
+  await tx.done;
+  return all;
 }

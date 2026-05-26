@@ -1,8 +1,10 @@
 import React from 'react';
 import { parseCSV, buildModel, mergeSets } from './parser.js';
 import { ExerciseNamesContext, RoutineNamesContext } from './contexts.js';
-import { storageGet, storageSet, storageDelete } from './storage.js';
+import { storageGet, storageSet, storageDelete, setStorageUser, syncFromCloud } from './storage.js';
+import { listenAuth, logout, cloudSet, cloudGet } from './firebase.js';
 import { useTweaks, TweaksPanel, TweakSection, TweakColor, TweakRadio } from './tweaks-panel.jsx';
+import AuthScreen from './screen-auth.jsx';
 import ImportScreen from './screen-import.jsx';
 import ListScreen from './screen-list.jsx';
 import { FolderListScreen, FolderDetailScreen } from './screen-folders.jsx';
@@ -22,9 +24,12 @@ const ACCENT_PRESETS = {
   lavender:{ accent: '#cdc1f9', soft: '#e6dffa', label: 'Lavender' },
 };
 
-const SETS_KEY = 'workout_tracker_sets_v2';    // JSON (current)
-const STORAGE_KEY = 'workout_tracker_csv_v1';  // legacy CSV (migration only)
+const SETS_KEY = 'workout_tracker_sets_v2';
+const STORAGE_KEY = 'workout_tracker_csv_v1';
 const NAME_KEY = 'workout_tracker_filename_v1';
+const RENAMES_KEY = 'workout_exercise_renames_v1';
+const ROUTINE_RENAMES_KEY = 'workout_routine_renames_v1';
+const FOLDERS_KEY = 'workout_folders_v1';
 
 function setsToJSON(sets) {
   return JSON.stringify(sets.map(s => ({
@@ -41,9 +46,10 @@ function setsFromJSON(text) {
     endTime: s.endTime ? new Date(s.endTime) : null,
   }));
 }
-const RENAMES_KEY = 'workout_exercise_renames_v1';
-const ROUTINE_RENAMES_KEY = 'workout_routine_renames_v1';
-const FOLDERS_KEY = 'workout_folders_v1';
+
+function foldersFromRaw(raw) {
+  return Array.isArray(raw) ? raw.map(f => ({ ...f, createdAt: f.createdAt ? new Date(f.createdAt) : new Date() })) : [];
+}
 
 function App() {
   const [tweaks, setTweaksRaw] = useTweaks(TWEAK_DEFAULTS);
@@ -51,22 +57,117 @@ function App() {
   const [sets, setSets] = React.useState(null);
   const [filename, setFilename] = React.useState(null);
   const [loadingInitial, setLoadingInitial] = React.useState(true);
-  const [renames, setRenamesState] = React.useState(() => {
-    try { return JSON.parse(localStorage.getItem(RENAMES_KEY) || '{}'); } catch (e) { return {}; }
-  });
-  const [routineRenames, setRoutineRenamesState] = React.useState(() => {
-    try { return JSON.parse(localStorage.getItem(ROUTINE_RENAMES_KEY) || '{}'); } catch (e) { return {}; }
-  });
-  const [folders, setFoldersState] = React.useState(() => {
-    try {
-      const raw = JSON.parse(localStorage.getItem(FOLDERS_KEY) || '[]');
-      return Array.isArray(raw) ? raw.map(f => ({ ...f, createdAt: f.createdAt ? new Date(f.createdAt) : new Date() })) : [];
-    } catch (e) { return []; }
-  });
+  const [currentUser, setCurrentUser] = React.useState(undefined); // undefined = not yet resolved
+
+  const [renames, setRenamesState] = React.useState({});
+  const [routineRenames, setRoutineRenamesState] = React.useState({});
+  const [folders, setFoldersState] = React.useState([]);
+
+  // Listen to Firebase auth state
+  React.useEffect(() => {
+    return listenAuth(user => {
+      setCurrentUser(user ?? null);
+    });
+  }, []);
+
+  // Load data once auth is resolved
+  React.useEffect(() => {
+    if (currentUser === undefined) return; // still resolving
+
+    if (!currentUser) {
+      setLoadingInitial(false);
+      return;
+    }
+
+    setStorageUser(currentUser.uid);
+
+    (async () => {
+      try {
+        // Load renames + folders (local first, cloud fallback)
+        const renamesRaw = localStorage.getItem(RENAMES_KEY);
+        const routineRenamesRaw = localStorage.getItem(ROUTINE_RENAMES_KEY);
+        const foldersRaw = localStorage.getItem(FOLDERS_KEY);
+
+        if (renamesRaw) {
+          try { setRenamesState(JSON.parse(renamesRaw)); } catch {}
+        } else {
+          const cloud = await cloudGet(currentUser.uid, RENAMES_KEY).catch(() => null);
+          if (cloud) {
+            localStorage.setItem(RENAMES_KEY, cloud);
+            try { setRenamesState(JSON.parse(cloud)); } catch {}
+          }
+        }
+
+        if (routineRenamesRaw) {
+          try { setRoutineRenamesState(JSON.parse(routineRenamesRaw)); } catch {}
+        } else {
+          const cloud = await cloudGet(currentUser.uid, ROUTINE_RENAMES_KEY).catch(() => null);
+          if (cloud) {
+            localStorage.setItem(ROUTINE_RENAMES_KEY, cloud);
+            try { setRoutineRenamesState(JSON.parse(cloud)); } catch {}
+          }
+        }
+
+        if (foldersRaw) {
+          try { setFoldersState(foldersFromRaw(JSON.parse(foldersRaw))); } catch {}
+        } else {
+          const cloud = await cloudGet(currentUser.uid, FOLDERS_KEY).catch(() => null);
+          if (cloud) {
+            localStorage.setItem(FOLDERS_KEY, cloud);
+            try { setFoldersState(foldersFromRaw(JSON.parse(cloud))); } catch {}
+          }
+        }
+
+        // Load sets
+        const storedName = await storageGet(NAME_KEY);
+        let loadedSets = null;
+
+        const json = await storageGet(SETS_KEY);
+        if (json) {
+          loadedSets = setsFromJSON(json);
+        } else {
+          // Migrate legacy CSV
+          const csv = await storageGet(STORAGE_KEY);
+          if (csv) {
+            const { sets } = parseCSV(csv);
+            if (sets.length) {
+              loadedSets = sets;
+              await storageSet(SETS_KEY, setsToJSON(sets));
+              await storageDelete(STORAGE_KEY);
+            }
+          }
+
+          // No local data → try to restore from cloud
+          if (!loadedSets) {
+            try {
+              await syncFromCloud(currentUser.uid);
+              const cloudJson = await storageGet(SETS_KEY);
+              if (cloudJson) loadedSets = setsFromJSON(cloudJson);
+              const cloudName = await storageGet(NAME_KEY);
+              if (cloudName) setFilename(cloudName);
+            } catch {}
+          }
+        }
+
+        if (loadedSets?.length) {
+          setSets(loadedSets);
+          setFilename(storedName || 'data.csv');
+          setRoute({ name: 'list' });
+        }
+      } catch (e) {
+        console.warn('Could not restore data:', e);
+      }
+      setLoadingInitial(false);
+    })();
+  }, [currentUser]);
+
   function persistFolders(next) {
     setFoldersState(next);
-    try { localStorage.setItem(FOLDERS_KEY, JSON.stringify(next.map(f => ({ ...f, createdAt: f.createdAt.toISOString() })))); } catch (e) {}
+    const serialized = JSON.stringify(next.map(f => ({ ...f, createdAt: f.createdAt.toISOString() })));
+    try { localStorage.setItem(FOLDERS_KEY, serialized); } catch {}
+    if (currentUser) cloudSet(currentUser.uid, FOLDERS_KEY, serialized).catch(() => {});
   }
+
   function createFolder(name) {
     const id = 'f_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
     const next = [{ id, name, routineTitles: [], createdAt: new Date() }, ...folders];
@@ -87,10 +188,12 @@ function App() {
       const next = { ...renames };
       if (!trimmed || trimmed === orig) delete next[orig]; else next[orig] = trimmed;
       setRenamesState(next);
-      try { localStorage.setItem(RENAMES_KEY, JSON.stringify(next)); } catch (e) {}
+      const serialized = JSON.stringify(next);
+      try { localStorage.setItem(RENAMES_KEY, serialized); } catch {}
+      if (currentUser) cloudSet(currentUser.uid, RENAMES_KEY, serialized).catch(() => {});
     },
     hasRename: (orig) => !!renames[orig],
-  }), [renames]);
+  }), [renames, currentUser]);
 
   const routineNamesApi = React.useMemo(() => ({
     get: (orig) => (orig && routineRenames[orig]) ? routineRenames[orig] : orig,
@@ -99,10 +202,12 @@ function App() {
       const next = { ...routineRenames };
       if (!trimmed || trimmed === orig) delete next[orig]; else next[orig] = trimmed;
       setRoutineRenamesState(next);
-      try { localStorage.setItem(ROUTINE_RENAMES_KEY, JSON.stringify(next)); } catch (e) {}
+      const serialized = JSON.stringify(next);
+      try { localStorage.setItem(ROUTINE_RENAMES_KEY, serialized); } catch {}
+      if (currentUser) cloudSet(currentUser.uid, ROUTINE_RENAMES_KEY, serialized).catch(() => {});
     },
     hasRename: (orig) => !!routineRenames[orig],
-  }), [routineRenames]);
+  }), [routineRenames, currentUser]);
 
   React.useEffect(() => {
     function handler(e) {
@@ -123,40 +228,6 @@ function App() {
   React.useEffect(() => {
     window.scrollTo(0, 0);
   }, [route.name, route.title, route.id, route.exerciseName]);
-
-  React.useEffect(() => {
-    (async () => {
-      try {
-        const storedName = await storageGet(NAME_KEY);
-        let loadedSets = null;
-
-        const json = await storageGet(SETS_KEY);
-        if (json) {
-          loadedSets = setsFromJSON(json);
-        } else {
-          // Migrate from legacy CSV storage
-          const csv = await storageGet(STORAGE_KEY);
-          if (csv) {
-            const { sets } = parseCSV(csv);
-            if (sets.length) {
-              loadedSets = sets;
-              await storageSet(SETS_KEY, setsToJSON(sets));
-              await storageDelete(STORAGE_KEY);
-            }
-          }
-        }
-
-        if (loadedSets?.length) {
-          setSets(loadedSets);
-          setFilename(storedName || 'data.csv');
-          setRoute({ name: 'list' });
-        }
-      } catch (e) {
-        console.warn('Could not restore data:', e);
-      }
-      setLoadingInitial(false);
-    })();
-  }, []);
 
   const workouts = React.useMemo(() => {
     if (!sets) return [];
@@ -202,12 +273,22 @@ function App() {
     setRoute({ name: 'import' });
   }
 
-  if (loadingInitial) {
+  // Still resolving auth or loading data
+  if (currentUser === undefined || loadingInitial) {
     return (
       <div className="app-root">
         <div className="app-frame">
           <div className="empty"><div className="spinner" /></div>
         </div>
+      </div>
+    );
+  }
+
+  // Not logged in
+  if (!currentUser) {
+    return (
+      <div className="app-root">
+        <AuthScreen />
       </div>
     );
   }
@@ -293,14 +374,18 @@ function App() {
       <ExerciseNamesContext.Provider value={namesApi}>
         <RoutineNamesContext.Provider value={routineNamesApi}>
           {screen}
-          <TweaksUI tweaks={tweaks} setTweak={setTweaksRaw} />
+          <TweaksUI tweaks={tweaks} setTweak={setTweaksRaw} onLogout={() => {
+            logout();
+            setStorageUser(null);
+            setCurrentUser(null);
+          }} />
         </RoutineNamesContext.Provider>
       </ExerciseNamesContext.Provider>
     </div>
   );
 }
 
-function TweaksUI({ tweaks, setTweak }) {
+function TweaksUI({ tweaks, setTweak, onLogout }) {
   return (
     <TweaksPanel title="Ajustes">
       <TweakSection label="Aspecto">
@@ -334,6 +419,14 @@ function TweaksUI({ tweaks, setTweak }) {
           ]}
           onChange={(v) => setTweak('deltaStyle', v)}
         />
+      </TweakSection>
+      <TweakSection label="Cuenta">
+        <button
+          onClick={onLogout}
+          style={{ fontSize: 13, color: 'var(--down)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0', textAlign: 'left' }}
+        >
+          Cerrar sesión
+        </button>
       </TweakSection>
     </TweaksPanel>
   );
