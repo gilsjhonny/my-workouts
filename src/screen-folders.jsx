@@ -65,7 +65,7 @@ function FolderListScreen({ folders, onOpen, onCreate, onReimport }) {
           </div>
         )}
 
-        {folders.map((f, i) => (
+        {[...folders].sort((a, b) => a.name.localeCompare(b.name)).map((f, i) => (
           <button
             key={f.id}
             className="workout-row fade-in"
