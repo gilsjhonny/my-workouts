@@ -82,6 +82,12 @@ export function parseCSV(text) {
   return { sets, errors };
 }
 
+// Merge two set arrays, skipping sessions already present in existing (by sessionKey).
+export function mergeSets(existing, incoming) {
+  const known = new Set(existing.map(s => s.sessionKey));
+  return [...existing, ...incoming.filter(s => !known.has(s.sessionKey))];
+}
+
 // Build hierarchical structure: workouts -> sessions -> exercises -> sets
 export function buildModel(sets) {
   // Group by workout title

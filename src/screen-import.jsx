@@ -2,10 +2,11 @@ import React from 'react';
 import { parseCSV } from './parser.js';
 import Icon from './icons.jsx';
 
-function ImportScreen({ onImport, onLoadDemo, hasData, onContinue }) {
+function ImportScreen({ onImport, onMerge, onLoadDemo, hasData, onContinue, onClearData }) {
   const [dragOver, setDragOver] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState(null);
+  const [mode, setMode] = React.useState(hasData ? 'merge' : 'replace');
   const fileRef = React.useRef(null);
 
   function handleFile(file) {
@@ -19,7 +20,11 @@ function ImportScreen({ onImport, onLoadDemo, hasData, onContinue }) {
         const { sets, errors } = parseCSV(text);
         if (errors.length) { setError(errors.join('; ')); setLoading(false); return; }
         if (!sets.length) { setError('No se encontraron filas.'); setLoading(false); return; }
-        onImport(sets, file.name, text);
+        if (mode === 'merge' && hasData) {
+          onMerge(sets, file.name);
+        } else {
+          onImport(sets, file.name);
+        }
       } catch (err) {
         setError(err.message);
       } finally {
@@ -58,6 +63,25 @@ function ImportScreen({ onImport, onLoadDemo, hasData, onContinue }) {
           </div>
         </div>
 
+        {hasData && (
+          <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+            <button
+              className={'pickbtn' + (mode === 'merge' ? '' : ' ghost')}
+              style={{ flex: 1, padding: '10px 0', fontSize: 13 }}
+              onClick={() => { setMode('merge'); setError(null); }}
+            >
+              Añadir datos
+            </button>
+            <button
+              className={'pickbtn' + (mode === 'replace' ? '' : ' ghost')}
+              style={{ flex: 1, padding: '10px 0', fontSize: 13 }}
+              onClick={() => { setMode('replace'); setError(null); }}
+            >
+              Reemplazar todo
+            </button>
+          </div>
+        )}
+
         <div
           className={'upload-zone' + (dragOver ? ' drag' : '')}
           onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
@@ -67,17 +91,32 @@ function ImportScreen({ onImport, onLoadDemo, hasData, onContinue }) {
           <div className="icon">
             {loading ? <div className="spinner" style={{ width: 22, height: 22, borderWidth: 2.5 }} /> : <Icon.Upload size={24} />}
           </div>
-          <h3>Sube tu CSV</h3>
-          <p>De Hevy o cualquier app con el mismo formato.<br />Suéltalo aquí o elige un archivo.</p>
+          <h3>{hasData && mode === 'merge' ? 'Añadir más datos' : 'Sube tu CSV'}</h3>
+          <p>
+            {hasData && mode === 'merge'
+              ? 'Las sesiones nuevas se añadirán. Las ya existentes no se duplicarán.'
+              : 'De Hevy o cualquier app con el mismo formato.\nSuéltalo aquí o elige un archivo.'}
+          </p>
+          {hasData && mode === 'replace' && (
+            <div style={{ fontSize: 12, color: 'var(--down)', marginBottom: 4 }}>
+              Los datos actuales se eliminarán al importar.
+            </div>
+          )}
           <input
             ref={fileRef}
             type="file"
             accept=".csv,text/csv"
             style={{ display: 'none' }}
-            onChange={(e) => handleFile(e.target.files?.[0])}
+            onChange={(e) => {
+              if (mode === 'replace' && hasData) {
+                if (!confirm('¿Reemplazar todos los datos actuales?')) return;
+                onClearData?.();
+              }
+              handleFile(e.target.files?.[0]);
+            }}
           />
           <button className="pickbtn" onClick={() => fileRef.current?.click()} disabled={loading}>
-            {loading ? 'Leyendo…' : 'Elegir archivo'}
+            {loading ? 'Leyendo…' : hasData && mode === 'merge' ? 'Añadir archivo' : 'Elegir archivo'}
           </button>
           {error && (
             <div style={{ marginTop: 12, color: 'var(--down)', fontSize: 12.5 }}>{error}</div>

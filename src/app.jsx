@@ -1,5 +1,5 @@
 import React from 'react';
-import { parseCSV, buildModel } from './parser.js';
+import { parseCSV, buildModel, mergeSets } from './parser.js';
 import { ExerciseNamesContext, RoutineNamesContext } from './contexts.js';
 import { storageGet, storageSet, storageDelete } from './storage.js';
 import { useTweaks, TweaksPanel, TweakSection, TweakColor, TweakRadio } from './tweaks-panel.jsx';
@@ -22,8 +22,25 @@ const ACCENT_PRESETS = {
   lavender:{ accent: '#cdc1f9', soft: '#e6dffa', label: 'Lavender' },
 };
 
-const STORAGE_KEY = 'workout_tracker_csv_v1';
+const SETS_KEY = 'workout_tracker_sets_v2';    // JSON (current)
+const STORAGE_KEY = 'workout_tracker_csv_v1';  // legacy CSV (migration only)
 const NAME_KEY = 'workout_tracker_filename_v1';
+
+function setsToJSON(sets) {
+  return JSON.stringify(sets.map(s => ({
+    ...s,
+    startTime: s.startTime?.toISOString() ?? null,
+    endTime: s.endTime?.toISOString() ?? null,
+  })));
+}
+
+function setsFromJSON(text) {
+  return JSON.parse(text).map(s => ({
+    ...s,
+    startTime: s.startTime ? new Date(s.startTime) : null,
+    endTime: s.endTime ? new Date(s.endTime) : null,
+  }));
+}
 const RENAMES_KEY = 'workout_exercise_renames_v1';
 const ROUTINE_RENAMES_KEY = 'workout_routine_renames_v1';
 const FOLDERS_KEY = 'workout_folders_v1';
@@ -110,15 +127,29 @@ function App() {
   React.useEffect(() => {
     (async () => {
       try {
-        const stored = await storageGet(STORAGE_KEY);
         const storedName = await storageGet(NAME_KEY);
-        if (stored) {
-          const { sets } = parseCSV(stored);
-          if (sets.length) {
-            setSets(sets);
-            setFilename(storedName || 'data.csv');
-            setRoute({ name: 'list' });
+        let loadedSets = null;
+
+        const json = await storageGet(SETS_KEY);
+        if (json) {
+          loadedSets = setsFromJSON(json);
+        } else {
+          // Migrate from legacy CSV storage
+          const csv = await storageGet(STORAGE_KEY);
+          if (csv) {
+            const { sets } = parseCSV(csv);
+            if (sets.length) {
+              loadedSets = sets;
+              await storageSet(SETS_KEY, setsToJSON(sets));
+              await storageDelete(STORAGE_KEY);
+            }
           }
+        }
+
+        if (loadedSets?.length) {
+          setSets(loadedSets);
+          setFilename(storedName || 'data.csv');
+          setRoute({ name: 'list' });
         }
       } catch (e) {
         console.warn('Could not restore data:', e);
@@ -132,15 +163,22 @@ function App() {
     return buildModel(sets);
   }, [sets]);
 
-  function persistCSV(text, name) {
-    storageSet(STORAGE_KEY, text).catch(e => console.warn('Could not persist CSV:', e));
-    storageSet(NAME_KEY, name || 'data.csv').catch(() => {});
+  function persistSets(setsToSave, name) {
+    storageSet(SETS_KEY, setsToJSON(setsToSave)).catch(e => console.warn('Could not persist sets:', e));
+    if (name) storageSet(NAME_KEY, name).catch(() => {});
   }
 
-  function onImport(parsedSets, name, rawText) {
+  function onImport(parsedSets, name) {
     setSets(parsedSets);
     setFilename(name);
-    if (rawText) persistCSV(rawText, name);
+    persistSets(parsedSets, name);
+    setRoute({ name: 'list' });
+  }
+
+  function onMerge(newSets, name) {
+    const merged = mergeSets(sets || [], newSets);
+    setSets(merged);
+    persistSets(merged, filename);
     setRoute({ name: 'list' });
   }
 
@@ -152,7 +190,7 @@ function App() {
       if (errors.length) throw new Error(errors.join('; '));
       setSets(sets);
       setFilename('sample_data.csv');
-      persistCSV(text, 'sample_data.csv');
+      persistSets(sets, 'sample_data.csv');
       setRoute({ name: 'list' });
     } catch (e) {
       console.error('demo load failed', e);
@@ -161,12 +199,7 @@ function App() {
   }
 
   function onReimport() {
-    if (confirm('¿Descartar los datos actuales e importar un archivo nuevo?')) {
-      storageDelete(STORAGE_KEY).catch(() => {});
-      storageDelete(NAME_KEY).catch(() => {});
-      setSets(null);
-      setRoute({ name: 'import' });
-    }
+    setRoute({ name: 'import' });
   }
 
   if (loadingInitial) {
@@ -184,9 +217,16 @@ function App() {
     screen = (
       <ImportScreen
         onImport={onImport}
+        onMerge={onMerge}
         onLoadDemo={onLoadDemo}
         hasData={!!sets}
         onContinue={() => setRoute({ name: 'list' })}
+        onClearData={() => {
+          storageDelete(SETS_KEY).catch(() => {});
+          storageDelete(NAME_KEY).catch(() => {});
+          setSets(null);
+          setFilename(null);
+        }}
       />
     );
   } else if (route.name === 'list') {
