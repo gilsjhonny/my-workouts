@@ -1,7 +1,7 @@
 import React from 'react';
 import { parseCSV, buildModel, mergeSets } from './parser.js';
 import { ExerciseNamesContext, RoutineNamesContext } from './contexts.js';
-import { storageGet, storageSet, storageDelete, setStorageUser, syncFromCloud } from './storage.js';
+import { storageGet, storageSet, storageDelete, setStorageUser, syncFromCloud, pushLocalToCloud } from './storage.js';
 import { listenAuth, logout, cloudSet, cloudGet } from './supabase.js';
 import { useTweaks, TweaksPanel, TweakSection, TweakColor, TweakRadio } from './tweaks-panel.jsx';
 import AuthScreen from './screen-auth.jsx';
@@ -117,6 +117,9 @@ function App() {
             try { setFoldersState(foldersFromRaw(JSON.parse(cloud))); } catch {}
           }
         }
+
+        // Push any existing local data up to Supabase (first login on this device)
+        pushLocalToCloud(currentUser.uid).catch(() => {});
 
         // Load sets
         const storedName = await storageGet(NAME_KEY);
