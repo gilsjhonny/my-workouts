@@ -46,7 +46,7 @@ export async function cloudGet(uid, key) {
     .select('value')
     .eq('user_id', uid)
     .eq('key', key)
-    .single();
+    .maybeSingle();
   return data?.value;
 }
 
