@@ -11,26 +11,32 @@ function ListScreen({ workouts, onOpen, onReimport, onLogout, onClearAll }) {
   const [menuOpen, setMenuOpen] = React.useState(false);
   const [confirmClear, setConfirmClear] = React.useState(false);
 
-  const filtered = React.useMemo(() => {
-    let arr = workouts.slice();
-    if (query) {
-      const q = query.toLowerCase();
-      arr = arr.filter(w =>
-        routineNames.get(w.title).toLowerCase().includes(q) ||
-        w.title.toLowerCase().includes(q)
-      );
+  // Flat list of all sessions sorted by most recent
+  const allSessions = React.useMemo(() => {
+    const sessions = [];
+    for (const w of workouts) {
+      for (const s of w.sessions) {
+        sessions.push({ ...s, routineTitle: w.title });
+      }
     }
-    return arr;
-  }, [workouts, query, routineNames]);
+    sessions.sort((a, b) => (b.startTime?.getTime() || 0) - (a.startTime?.getTime() || 0));
+    return sessions;
+  }, [workouts]);
 
-  const initialN = 5;
+  const filtered = React.useMemo(() => {
+    if (!query) return allSessions;
+    const q = query.toLowerCase();
+    return allSessions.filter(s =>
+      routineNames.get(s.routineTitle).toLowerCase().includes(q) ||
+      s.routineTitle.toLowerCase().includes(q)
+    );
+  }, [allSessions, query, routineNames]);
+
+  const initialN = 10;
   const visible = (showAll || query) ? filtered : filtered.slice(0, initialN);
   const hiddenCount = filtered.length - visible.length;
 
-  const totalSessions = workouts.reduce((a, w) => a + w.sessionCount, 0);
-  const totalSets = workouts.reduce((a, w) => a + w.totalSets, 0);
-
-  const mostRecent = workouts[0];
+  const mostRecent = allSessions[0];
 
   return (
     <div className="app-frame" data-screen-label="02 Lista de rutinas">
@@ -89,15 +95,14 @@ function ListScreen({ workouts, onOpen, onReimport, onLogout, onClearAll }) {
       </div>
 
       {mostRecent && (
-        <div className="hero fade-in" key={mostRecent.title} role="button" onClick={() => onOpen(mostRecent.title)}>
-          <div className="hero-eyebrow">Más reciente</div>
-          <h2>{routineNames.get(mostRecent.title)}</h2>
+        <div className="hero fade-in" key={mostRecent.key} role="button" onClick={() => onOpen(mostRecent.routineTitle)}>
+          <div className="hero-eyebrow">Última sesión</div>
+          <h2>{routineNames.get(mostRecent.routineTitle)}</h2>
           <div className="stats">
-            <span><span className="stat-num">{mostRecent.sessionCount}</span> sesiones</span>
+            <span><span className="stat-num">{mostRecent.exercises.length}</span> ejercicios</span>
+            {mostRecent.durationMin && <><span>·</span><span><span className="stat-num">{mostRecent.durationMin}</span> min</span></>}
             <span>·</span>
-            <span><span className="stat-num">{mostRecent.exerciseCount}</span> ejercicios</span>
-            <span>·</span>
-            <span>{fmtRelative(mostRecent.lastDate)}</span>
+            <span>{fmtRelative(mostRecent.startTime)}</span>
           </div>
           <button className="cta">
             <span>Ver sesiones</span>
@@ -111,7 +116,7 @@ function ListScreen({ workouts, onOpen, onReimport, onLogout, onClearAll }) {
       <div className="search">
         <Icon.Search />
         <input
-          placeholder="Buscar rutinas…"
+          placeholder="Buscar sesiones…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
@@ -124,27 +129,26 @@ function ListScreen({ workouts, onOpen, onReimport, onLogout, onClearAll }) {
             <div style={{ fontSize: 13 }}>Prueba otro filtro o importa datos.</div>
           </div>
         )}
-        {visible.map((w, i) => (
+        {visible.map((s, i) => (
           <button
-            key={w.title}
+            key={s.key}
             className="workout-row fade-in"
             style={{ animationDelay: `${Math.min(i, 12) * 0.02}s` }}
-            onClick={() => onOpen(w.title)}
+            onClick={() => onOpen(s.routineTitle)}
           >
             <div className="badge">
-              <span className="glyph">{initials(routineNames.get(w.title))}</span>
+              <span className="glyph">{initials(routineNames.get(s.routineTitle))}</span>
             </div>
             <div className="main">
               <div className="name">
-                {routineNames.get(w.title)}
-                {routineNames.hasRename(w.title) && <span className="renamed-dot" />}
+                {routineNames.get(s.routineTitle)}
+                {routineNames.hasRename(s.routineTitle) && <span className="renamed-dot" />}
               </div>
               <div className="meta">
-                <span>{w.sessionCount} {w.sessionCount === 1 ? 'sesión' : 'sesiones'}</span>
+                <span>{fmtRelative(s.startTime)}</span>
                 <span className="dot" />
-                <span>{w.exerciseCount} ej</span>
-                <span className="dot" />
-                <span>{fmtRelative(w.lastDate)}</span>
+                <span>{s.exercises.length} ej</span>
+                {s.durationMin && <><span className="dot" /><span>{s.durationMin} min</span></>}
               </div>
             </div>
             <span className="chev"><Icon.Chevron /></span>
