@@ -8,9 +8,7 @@ const supabase = createClient(
 export default supabase;
 
 export function listenAuth(cb) {
-  supabase.auth.getSession().then(({ data: { session } }) => {
-    cb(session?.user ?? null);
-  });
+  // onAuthStateChange fires INITIAL_SESSION immediately, so getSession() is redundant
   const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
     cb(session?.user ?? null);
   });

@@ -62,6 +62,7 @@ function App() {
   const [renames, setRenamesState] = React.useState({});
   const [routineRenames, setRoutineRenamesState] = React.useState({});
   const [folders, setFoldersState] = React.useState([]);
+  const loadedUidRef = React.useRef(null);
 
   // Listen to Firebase auth state
   React.useEffect(() => {
@@ -79,6 +80,8 @@ function App() {
       return;
     }
 
+    if (loadedUidRef.current === currentUser.id) return;
+    loadedUidRef.current = currentUser.id;
     setStorageUser(currentUser.id);
 
     (async () => {
