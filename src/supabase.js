@@ -33,14 +33,6 @@ export async function logout() {
   await supabase.auth.signOut();
 }
 
-export async function googleSignIn() {
-  const { error } = await supabase.auth.signInWithOAuth({
-    provider: 'google',
-    options: { redirectTo: window.location.origin },
-  });
-  if (error) throw error;
-}
-
 export async function cloudSet(uid, key, value) {
   const { error } = await supabase
     .from('user_data')
