@@ -93,7 +93,7 @@ function FolderListScreen({ folders, onOpen, onCreate, onReimport }) {
   );
 }
 
-function FolderDetailScreen({ folder, workouts, onBack, onOpenRoutine, onRename, onDelete, onUpdateRoutines, onUpdateDateFrom }) {
+function FolderDetailScreen({ folder, workouts, onBack, onOpenRoutine, onRename, onDelete, onUpdateRoutines, onUpdateDateFrom, onEditTemplate }) {
   const routineNames = React.useContext(RoutineNamesContext);
   const [editingName, setEditingName] = React.useState(false);
   const [draft, setDraft] = React.useState(folder.name);
@@ -239,6 +239,34 @@ function FolderDetailScreen({ folder, workouts, onBack, onOpenRoutine, onRename,
             <span className="chev"><Icon.Chevron /></span>
           </button>
         ))}
+        <div style={{ height: 1, background: 'var(--line)', margin: '8px 16px' }} />
+
+        <div style={{ padding: '8px 16px 4px', fontSize: 11, fontWeight: 600, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+          Plantillas
+        </div>
+
+        {(folder.templates || []).map(t => (
+          <button
+            key={t.id}
+            className="workout-row"
+            onClick={() => onEditTemplate?.(t.id)}
+          >
+            <div className="badge folder">
+              <Icon.File size={18} />
+            </div>
+            <div className="main">
+              <div className="name">{t.name}</div>
+              <div className="meta"><span>{t.slots.length} ejercicio{t.slots.length === 1 ? '' : 's'}</span></div>
+            </div>
+            <span className="chev"><Icon.Chevron /></span>
+          </button>
+        ))}
+
+        <button className="folder-create-btn" onClick={() => onEditTemplate?.(null)}>
+          <Icon.Plus size={16} />
+          <span>Nueva plantilla</span>
+        </button>
+
         <div className="safe-bottom" />
       </div>
     </div>

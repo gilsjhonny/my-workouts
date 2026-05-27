@@ -3,7 +3,7 @@ import Icon from './icons.jsx';
 import { fmtDate, fmtDateShort, exerciseHistory } from './parser.js';
 import { ExerciseNamesContext, RoutineNamesContext } from './contexts.js';
 
-function DetailScreen({ workout, workouts, onBack, onOpenExercise, tweaks }) {
+function DetailScreen({ workout, workouts, onBack, onOpenExercise, tweaks, onAssign }) {
   const names = React.useContext(ExerciseNamesContext);
   const routineNames = React.useContext(RoutineNamesContext);
   const [selectedIdx, setSelectedIdx] = React.useState(0);
@@ -153,6 +153,17 @@ function DetailScreen({ workout, workouts, onBack, onOpenExercise, tweaks }) {
             })()}
           </div>
         </>
+      )}
+
+      {onAssign && (
+        <div style={{ padding: '0 16px 8px' }}>
+          <button
+            onClick={() => onAssign(session.key)}
+            style={{ width: '100%', padding: '10px 14px', borderRadius: 12, border: '1px dashed var(--line)', background: 'var(--surface-2)', fontSize: 13, fontWeight: 600, color: 'var(--ink-2)', cursor: 'pointer', textAlign: 'left' }}
+          >
+            Asignar a plantilla →
+          </button>
+        </div>
       )}
 
       <div className="list" style={{ paddingTop: 8 }}>

@@ -8,6 +8,8 @@ import AuthScreen from './screen-auth.jsx';
 import ImportScreen from './screen-import.jsx';
 import ListScreen from './screen-list.jsx';
 import { FolderListScreen, FolderDetailScreen } from './screen-folders.jsx';
+import TemplateEditScreen from './screen-template-edit.jsx';
+import SlotMappingScreen from './screen-slot-mapping.jsx';
 import DetailScreen from './screen-detail.jsx';
 import ExerciseScreen from './screen-exercise.jsx';
 
@@ -49,7 +51,12 @@ function setsFromJSON(text) {
 }
 
 function foldersFromRaw(raw) {
-  return Array.isArray(raw) ? raw.map(f => ({ ...f, createdAt: f.createdAt ? new Date(f.createdAt) : new Date() })) : [];
+  return Array.isArray(raw) ? raw.map(f => ({
+    ...f,
+    createdAt: f.createdAt ? new Date(f.createdAt) : new Date(),
+    templates: f.templates || [],
+    assignments: f.assignments || {},
+  })) : [];
 }
 
 function App() {
@@ -196,6 +203,33 @@ function App() {
   }
   function deleteFolder(id) {
     persistFolders(folders.filter(f => f.id !== id));
+  }
+
+  function createTemplate(folderId, data) {
+    const id = 't_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+    persistFolders(folders.map(f => f.id === folderId
+      ? { ...f, templates: [...(f.templates || []), { id, ...data }] }
+      : f
+    ));
+    return id;
+  }
+  function updateTemplate(folderId, templateId, data) {
+    persistFolders(folders.map(f => f.id === folderId
+      ? { ...f, templates: (f.templates || []).map(t => t.id === templateId ? { ...t, ...data } : t) }
+      : f
+    ));
+  }
+  function deleteTemplate(folderId, templateId) {
+    persistFolders(folders.map(f => f.id === folderId
+      ? { ...f, templates: (f.templates || []).filter(t => t.id !== templateId) }
+      : f
+    ));
+  }
+  function saveAssignment(folderId, sessionKey, templateId, mapping) {
+    persistFolders(folders.map(f => f.id === folderId
+      ? { ...f, assignments: { ...(f.assignments || {}), [sessionKey]: { templateId, mapping } } }
+      : f
+    ));
   }
 
   function persistAlternates(next) {
@@ -399,11 +433,12 @@ function App() {
         folder={folder}
         workouts={workouts}
         onBack={() => setRoute({ name: 'folders' })}
-        onOpenRoutine={(title) => setRoute({ name: 'detail', title, dateFrom: folder.dateFrom || null, from: { name: 'folder-detail', id: folder.id } })}
+        onOpenRoutine={(title) => setRoute({ name: 'detail', title, dateFrom: folder.dateFrom || null, folderId: folder.id, from: { name: 'folder-detail', id: folder.id } })}
         onRename={(name) => updateFolder(folder.id, { name })}
         onDelete={() => { deleteFolder(folder.id); setRoute({ name: 'folders' }); }}
         onUpdateRoutines={(titles) => updateFolder(folder.id, { routineTitles: titles })}
         onUpdateDateFrom={(dateFrom) => updateFolder(folder.id, { dateFrom })}
+        onEditTemplate={(templateId) => setRoute({ name: 'template-edit', folderId: folder.id, templateId: templateId || null })}
       />
     );
   } else if (route.name === 'detail') {
@@ -415,6 +450,8 @@ function App() {
     const filteredWorkout = route.dateFrom
       ? { ...workout, sessions: workout.sessions.filter(s => s.startTime >= new Date(route.dateFrom)) }
       : workout;
+    const folderForDetail = route.folderId ? folders.find(f => f.id === route.folderId) : null;
+    const hasTemplates = (folderForDetail?.templates?.length || 0) > 0;
     screen = (
       <DetailScreen
         workout={filteredWorkout}
@@ -422,6 +459,41 @@ function App() {
         onBack={() => setRoute(route.from || { name: 'list' })}
         onOpenExercise={(exerciseName) => setRoute({ name: 'exercise', exerciseName, from: route })}
         tweaks={tweaks}
+        onAssign={hasTemplates ? (sessionKey) => setRoute({ name: 'slot-mapping', folderId: route.folderId, sessionKey, routineTitle: route.title, from: route }) : null}
+      />
+    );
+  } else if (route.name === 'template-edit') {
+    const folder = folders.find(f => f.id === route.folderId);
+    if (!folder) { setRoute({ name: 'folders' }); return null; }
+    const template = route.templateId ? (folder.templates || []).find(t => t.id === route.templateId) : null;
+    screen = (
+      <TemplateEditScreen
+        template={template}
+        onBack={() => setRoute({ name: 'folder-detail', id: route.folderId })}
+        onSave={(data) => {
+          if (template) updateTemplate(route.folderId, route.templateId, data);
+          else createTemplate(route.folderId, data);
+          setRoute({ name: 'folder-detail', id: route.folderId });
+        }}
+        onDelete={template ? () => { deleteTemplate(route.folderId, route.templateId); setRoute({ name: 'folder-detail', id: route.folderId }); } : null}
+      />
+    );
+  } else if (route.name === 'slot-mapping') {
+    const folder = folders.find(f => f.id === route.folderId);
+    if (!folder) { setRoute(route.from || { name: 'list' }); return null; }
+    const workout = workouts.find(w => w.title === route.routineTitle);
+    if (!workout) { setRoute(route.from || { name: 'list' }); return null; }
+    const session = workout.sessions.find(s => s.key === route.sessionKey);
+    if (!session) { setRoute(route.from || { name: 'list' }); return null; }
+    screen = (
+      <SlotMappingScreen
+        folder={folder}
+        session={session}
+        onBack={() => setRoute(route.from || { name: 'list' })}
+        onConfirm={(templateId, mapping) => {
+          saveAssignment(route.folderId, route.sessionKey, templateId, mapping);
+          setRoute(route.from || { name: 'list' });
+        }}
       />
     );
   } else if (route.name === 'exercise') {
