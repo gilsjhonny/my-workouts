@@ -2,7 +2,7 @@ import React from 'react';
 import { parseCSV, buildModel, mergeSets } from './parser.js';
 import { ExerciseNamesContext, RoutineNamesContext } from './contexts.js';
 import { storageGet, storageSet, storageDelete, setStorageUser, syncFromCloud, pushLocalToCloud } from './storage.js';
-import { listenAuth, logout, cloudSet, cloudGet } from './supabase.js';
+import { listenAuth, logout, cloudSet, cloudGet, cloudDeleteAll } from './supabase.js';
 import { useTweaks, TweaksPanel, TweakSection, TweakColor, TweakRadio } from './tweaks-panel.jsx';
 import AuthScreen from './screen-auth.jsx';
 import ImportScreen from './screen-import.jsx';
@@ -320,6 +320,20 @@ function App() {
         onOpen={(title) => setRoute({ name: 'detail', title })}
         onReimport={onReimport}
         onLogout={() => { logout(); setStorageUser(null); setCurrentUser(null); }}
+        onClearAll={async () => {
+          storageDelete(SETS_KEY).catch(() => {});
+          storageDelete(NAME_KEY).catch(() => {});
+          try { localStorage.removeItem(RENAMES_KEY); } catch {}
+          try { localStorage.removeItem(ROUTINE_RENAMES_KEY); } catch {}
+          try { localStorage.removeItem(FOLDERS_KEY); } catch {}
+          if (currentUser) cloudDeleteAll(currentUser.id).catch(() => {});
+          setSets(null);
+          setFilename(null);
+          setRenamesState({});
+          setRoutineRenamesState({});
+          setFoldersState([]);
+          setRoute({ name: 'import' });
+        }}
       />
     );
   } else if (route.name === 'folders') {

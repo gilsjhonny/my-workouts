@@ -4,11 +4,12 @@ import { fmtRelative } from './parser.js';
 import { RoutineNamesContext } from './contexts.js';
 import { BottomTabs } from './screen-folders.jsx';
 
-function ListScreen({ workouts, onOpen, onReimport, onLogout }) {
+function ListScreen({ workouts, onOpen, onReimport, onLogout, onClearAll }) {
   const routineNames = React.useContext(RoutineNamesContext);
   const [query, setQuery] = React.useState('');
   const [showAll, setShowAll] = React.useState(false);
   const [menuOpen, setMenuOpen] = React.useState(false);
+  const [confirmClear, setConfirmClear] = React.useState(false);
 
   const filtered = React.useMemo(() => {
     let arr = workouts.slice();
@@ -41,10 +42,16 @@ function ListScreen({ workouts, onOpen, onReimport, onLogout }) {
           {menuOpen && (
             <>
               <div style={{ position: 'fixed', inset: 0, zIndex: 99 }} onClick={() => setMenuOpen(false)} />
-              <div style={{ position: 'absolute', right: 0, top: '110%', zIndex: 100, background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 14, boxShadow: 'var(--shadow-md)', minWidth: 160, overflow: 'hidden' }}>
+              <div style={{ position: 'absolute', right: 0, top: '110%', zIndex: 100, background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 14, boxShadow: 'var(--shadow-md)', minWidth: 180, overflow: 'hidden' }}>
+                <button
+                  onClick={() => { setMenuOpen(false); setConfirmClear(true); }}
+                  style={{ width: '100%', textAlign: 'left', padding: '13px 16px', fontSize: 14, color: 'var(--down)', background: 'none', border: 'none', cursor: 'pointer', borderBottom: '1px solid var(--line)' }}
+                >
+                  Borrar todos los datos
+                </button>
                 <button
                   onClick={() => { setMenuOpen(false); onLogout?.(); }}
-                  style={{ width: '100%', textAlign: 'left', padding: '13px 16px', fontSize: 14, color: 'var(--down)', background: 'none', border: 'none', cursor: 'pointer' }}
+                  style={{ width: '100%', textAlign: 'left', padding: '13px 16px', fontSize: 14, color: 'var(--ink-2)', background: 'none', border: 'none', cursor: 'pointer' }}
                 >
                   Cerrar sesión
                 </button>
@@ -53,6 +60,29 @@ function ListScreen({ workouts, onOpen, onReimport, onLogout }) {
           )}
         </div>
       </div>
+
+      {confirmClear && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, background: 'rgba(0,0,0,0.4)' }}>
+          <div style={{ background: 'var(--surface)', borderRadius: 20, padding: 24, width: '100%', maxWidth: 320, boxShadow: 'var(--shadow-md)' }}>
+            <h3 style={{ margin: '0 0 8px', fontSize: 17, fontWeight: 600 }}>¿Borrar todos los datos?</h3>
+            <p style={{ margin: '0 0 20px', fontSize: 14, color: 'var(--ink-2)', lineHeight: 1.5 }}>Se eliminarán todos tus entrenos, carpetas y nombres personalizados. Esta acción no se puede deshacer.</p>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                onClick={() => setConfirmClear(false)}
+                style={{ flex: 1, padding: '12px', borderRadius: 12, border: '1px solid var(--line)', background: 'var(--surface)', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => { setConfirmClear(false); onClearAll?.(); }}
+                style={{ flex: 1, padding: '12px', borderRadius: 12, border: 'none', background: 'var(--down)', color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
+              >
+                Borrar todo
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="page-head">
         <div className="eyebrow">Biblioteca</div>

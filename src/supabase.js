@@ -54,6 +54,10 @@ export async function cloudDelete(uid, key) {
   await supabase.from('user_data').delete().eq('user_id', uid).eq('key', key);
 }
 
+export async function cloudDeleteAll(uid) {
+  await supabase.from('user_data').delete().eq('user_id', uid);
+}
+
 export async function cloudGetAll(uid) {
   const { data } = await supabase
     .from('user_data')
