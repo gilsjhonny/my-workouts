@@ -259,7 +259,7 @@ function ExerciseCard({ workout, workouts, exercise, currentSession, currentSess
           />
         ) : (
           <div className="ex-title" title={renamed ? 'Original: ' + exercise.name : ''}>
-            {displayName}
+            <span className="ex-title-text">{displayName}</span>
             {renamed && <span className="renamed-dot" aria-label="renombrado"></span>}
           </div>
         )}

@@ -231,12 +231,18 @@ button { cursor: pointer; border: 0; background: transparent; }
   letter-spacing: -0.01em;
   flex: 1;
   min-width: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 6px;
+}
+.ex-head .ex-title .ex-title-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.ex-card.open .ex-head .ex-title .ex-title-text {
+  white-space: normal;
 }
 .ex-head .ex-title .renamed-dot {
   width: 6px;
