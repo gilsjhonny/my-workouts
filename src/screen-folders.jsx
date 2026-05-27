@@ -93,7 +93,7 @@ function FolderListScreen({ folders, onOpen, onCreate, onReimport }) {
   );
 }
 
-function FolderDetailScreen({ folder, workouts, onBack, onOpenRoutine, onRename, onDelete, onUpdateRoutines, onUpdateDateFrom, onEditTemplate }) {
+function FolderDetailScreen({ folder, workouts, onBack, onOpenRoutine, onRename, onDelete, onUpdateRoutines, onUpdateDateFrom, onEditTemplate, onOpenTemplate }) {
   const routineNames = React.useContext(RoutineNamesContext);
   const [editingName, setEditingName] = React.useState(false);
   const [draft, setDraft] = React.useState(folder.name);
@@ -249,7 +249,7 @@ function FolderDetailScreen({ folder, workouts, onBack, onOpenRoutine, onRename,
           <button
             key={t.id}
             className="workout-row"
-            onClick={() => onEditTemplate?.(t.id)}
+            onClick={() => onOpenTemplate?.(t.id)}
           >
             <div className="badge folder">
               <Icon.File size={18} />

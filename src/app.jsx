@@ -9,6 +9,7 @@ import ImportScreen from './screen-import.jsx';
 import ListScreen from './screen-list.jsx';
 import { FolderListScreen, FolderDetailScreen } from './screen-folders.jsx';
 import TemplateEditScreen from './screen-template-edit.jsx';
+import TemplateProgressScreen from './screen-template-progress.jsx';
 import SlotMappingScreen from './screen-slot-mapping.jsx';
 import DetailScreen from './screen-detail.jsx';
 import ExerciseScreen from './screen-exercise.jsx';
@@ -438,6 +439,7 @@ function App() {
         onDelete={() => { deleteFolder(folder.id); setRoute({ name: 'folders' }); }}
         onUpdateRoutines={(titles) => updateFolder(folder.id, { routineTitles: titles })}
         onUpdateDateFrom={(dateFrom) => updateFolder(folder.id, { dateFrom })}
+        onOpenTemplate={(templateId) => setRoute({ name: 'template-progress', folderId: folder.id, templateId })}
         onEditTemplate={(templateId) => setRoute({ name: 'template-edit', folderId: folder.id, templateId: templateId || null })}
       />
     );
@@ -460,6 +462,20 @@ function App() {
         onOpenExercise={(exerciseName) => setRoute({ name: 'exercise', exerciseName, from: route })}
         tweaks={tweaks}
         onAssign={hasTemplates ? (sessionKey) => setRoute({ name: 'slot-mapping', folderId: route.folderId, sessionKey, routineTitle: route.title, from: route }) : null}
+      />
+    );
+  } else if (route.name === 'template-progress') {
+    const folder = folders.find(f => f.id === route.folderId);
+    if (!folder) { setRoute({ name: 'folders' }); return null; }
+    const template = (folder.templates || []).find(t => t.id === route.templateId);
+    if (!template) { setRoute({ name: 'folder-detail', id: route.folderId }); return null; }
+    screen = (
+      <TemplateProgressScreen
+        folder={folder}
+        template={template}
+        workouts={workouts}
+        onBack={() => setRoute({ name: 'folder-detail', id: route.folderId })}
+        onEdit={() => setRoute({ name: 'template-edit', folderId: route.folderId, templateId: route.templateId })}
       />
     );
   } else if (route.name === 'template-edit') {

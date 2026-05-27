@@ -371,7 +371,7 @@ function TopSetChart({ history }) {
   );
 }
 
-function FullHistoryGrid({ history, canonicalName }) {
+export function FullHistoryGrid({ history, canonicalName }) {
   const names = React.useContext(ExerciseNamesContext);
   const routineNames = React.useContext(RoutineNamesContext);
   const display = history.slice().reverse();
