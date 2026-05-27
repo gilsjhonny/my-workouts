@@ -39,7 +39,19 @@ function DetailScreen({ workout, workouts, onBack, onOpenExercise, tweaks }) {
   const session = workout.sessions[selectedIdx];
   const baselineMode = tweaks.baseline || 'previous';
 
-  if (!session) return null;
+  if (!session) return (
+    <div className="app-frame">
+      <div className="topbar">
+        <button className="iconbtn" onClick={onBack} aria-label="volver"><Icon.Back /></button>
+        <div className="title">Progreso</div>
+        <div style={{ width: 36 }} />
+      </div>
+      <div className="empty" style={{ paddingTop: 80 }}>
+        <div style={{ fontWeight: 600, marginBottom: 4 }}>{displayTitle}</div>
+        <div style={{ fontSize: 13 }}>No hay sesiones en este período.</div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="app-frame" data-screen-label="03 Detalle de rutina">
