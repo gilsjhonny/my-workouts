@@ -198,6 +198,31 @@ export function exerciseHistoryAll(workouts, exerciseName) {
   return out;
 }
 
+// Like exerciseHistoryAll but accepts an array of exercise names (for alternate groups).
+// Each entry gets an `actualName` field with the real exercise name used in that session.
+export function exerciseHistoryForGroup(workouts, exerciseNames) {
+  const nameSet = new Set(exerciseNames);
+  const out = [];
+  workouts.forEach(w => {
+    w.sessions.forEach(sess => {
+      const ex = sess.exercises.find(e => nameSet.has(e.name));
+      if (ex) {
+        out.push({
+          session: sess,
+          ex,
+          actualName: ex.name,
+          topSetWeight: Math.max(0, ...ex.sets.filter(s => s.setType !== 'warmup').map(s => s.weight || 0)),
+          topReps: Math.max(0, ...ex.sets.filter(s => s.setType !== 'warmup').map(s => s.reps || 0)),
+          totalVolume: ex.sets.reduce((a, s) => a + (s.weight || 0) * (s.reps || 0), 0),
+          workSets: ex.sets.filter(s => s.setType !== 'warmup'),
+        });
+      }
+    });
+  });
+  out.sort((a, b) => b.session.startTime - a.session.startTime);
+  return out;
+}
+
 // Date format helpers
 export function fmtDate(d) {
   if (!d) return '—';

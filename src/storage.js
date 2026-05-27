@@ -69,6 +69,7 @@ export async function pushLocalToCloud(uid) {
     'workout_exercise_renames_v1',
     'workout_routine_renames_v1',
     'workout_folders_v1',
+    'workout_exercise_alternates_v1',
   ];
   await Promise.all(lsKeys.map(async k => {
     const v = localStorage.getItem(k);

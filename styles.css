@@ -578,6 +578,19 @@ button { cursor: pointer; border: 0; background: transparent; }
   max-width: 100%;
 }
 .history-grid .hcell.head.cur .rt { color: rgba(20,22,15,0.55); }
+.history-grid .hcell.head .alt-tag {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--accent-ink);
+  background: var(--accent-soft);
+  border-radius: 4px;
+  padding: 1px 4px;
+  margin-top: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
 .history-grid .hcell.head.dim {
   color: var(--ink-3);
   font-style: italic;

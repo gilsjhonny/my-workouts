@@ -1,17 +1,22 @@
 import React from 'react';
 import Icon from './icons.jsx';
-import { exerciseHistoryAll } from './parser.js';
-import { ExerciseNamesContext, RoutineNamesContext } from './contexts.js';
+import { exerciseHistoryForGroup } from './parser.js';
+import { ExerciseNamesContext, RoutineNamesContext, ExerciseAlternatesContext } from './contexts.js';
 import { SetMini, formatNum, topSetOf, shortRoutine } from './screen-detail.jsx';
 
 function ExerciseScreen({ exerciseName, workouts, onBack }) {
   const names = React.useContext(ExerciseNamesContext);
   const routineNames = React.useContext(RoutineNamesContext);
+  const alts = React.useContext(ExerciseAlternatesContext);
+
   const displayName = names.get(exerciseName);
   const renamed = names.hasRename(exerciseName);
+  const group = alts.getGroup(exerciseName);
+  const linkedAlts = group.filter(n => n !== exerciseName);
 
   const [editing, setEditing] = React.useState(false);
   const [draft, setDraft] = React.useState('');
+  const [pickingAlt, setPickingAlt] = React.useState(false);
   const inputRef = React.useRef(null);
 
   React.useEffect(() => {
@@ -19,11 +24,23 @@ function ExerciseScreen({ exerciseName, workouts, onBack }) {
   }, [editing]);
 
   const history = React.useMemo(
-    () => exerciseHistoryAll(workouts, exerciseName),
-    [workouts, exerciseName]
+    () => exerciseHistoryForGroup(workouts, group),
+    [workouts, group.join(',')]
   );
 
   const stats = React.useMemo(() => computeStats(history), [history]);
+
+  if (pickingAlt) {
+    return (
+      <AlternatePicker
+        workouts={workouts}
+        group={group}
+        canonicalName={exerciseName}
+        onCancel={() => setPickingAlt(false)}
+        onConfirm={(altName) => { alts.link(altName, exerciseName); setPickingAlt(false); }}
+      />
+    );
+  }
 
   if (history.length === 0) {
     return (
@@ -104,10 +121,108 @@ function ExerciseScreen({ exerciseName, workouts, onBack }) {
 
       <div className="ex-section-title">Historial completo</div>
       <div className="ex-history-wrap">
-        <FullHistoryGrid history={history} currentRoutineTitle={null} />
+        <FullHistoryGrid history={history} canonicalName={exerciseName} />
+      </div>
+
+      <div className="ex-section-title">Ejercicios alternativos</div>
+      <div style={{ padding: '0 16px 8px' }}>
+        {linkedAlts.length === 0 && (
+          <div style={{ fontSize: 13, color: 'var(--ink-3)', marginBottom: 8 }}>
+            Ninguno. Añade ejercicios que hayas hecho en lugar de éste.
+          </div>
+        )}
+        {linkedAlts.map(altName => (
+          <div key={altName} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid var(--line)' }}>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 600 }}>{names.get(altName)}</div>
+              {names.hasRename(altName) && <div style={{ fontSize: 12, color: 'var(--ink-3)' }}>{altName}</div>}
+            </div>
+            <button
+              onClick={() => alts.unlink(altName)}
+              style={{ background: 'none', border: 'none', color: 'var(--ink-3)', cursor: 'pointer', fontSize: 13, padding: '4px 0 4px 12px' }}
+            >
+              Quitar
+            </button>
+          </div>
+        ))}
+        <button
+          className="folder-create-btn"
+          style={{ marginTop: 8 }}
+          onClick={() => setPickingAlt(true)}
+        >
+          <Icon.Plus size={16} />
+          <span>Añadir alternativo</span>
+        </button>
       </div>
 
       <div className="safe-bottom" />
+    </div>
+  );
+}
+
+function AlternatePicker({ workouts, group, canonicalName, onCancel, onConfirm }) {
+  const names = React.useContext(ExerciseNamesContext);
+  const [query, setQuery] = React.useState('');
+  const groupSet = new Set(group);
+
+  const allExercises = React.useMemo(() => {
+    const seen = new Set();
+    workouts.forEach(w => w.sessions.forEach(s => s.exercises.forEach(e => seen.add(e.name))));
+    return [...seen]
+      .filter(n => !groupSet.has(n))
+      .sort((a, b) => names.get(a).localeCompare(names.get(b)));
+  }, [workouts, group]);
+
+  const filtered = React.useMemo(() => {
+    if (!query) return allExercises;
+    const q = query.toLowerCase();
+    return allExercises.filter(n => names.get(n).toLowerCase().includes(q) || n.toLowerCase().includes(q));
+  }, [allExercises, query]);
+
+  return (
+    <div className="app-frame" data-screen-label="08 Selector de alternativo">
+      <div className="topbar">
+        <button className="iconbtn" onClick={onCancel} aria-label="cancelar"><Icon.Back /></button>
+        <div className="title">{names.get(canonicalName)}</div>
+        <div style={{ width: 40 }} />
+      </div>
+
+      <div className="page-head">
+        <div className="eyebrow">Alternativo</div>
+        <h1>¿Qué ejercicio hiciste en su lugar?</h1>
+      </div>
+
+      <div className="search">
+        <Icon.Search />
+        <input
+          placeholder="Buscar ejercicio…"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          autoFocus
+        />
+      </div>
+
+      <div className="list">
+        {filtered.length === 0 && (
+          <div className="empty">
+            <div style={{ fontSize: 13 }}>Sin resultados.</div>
+          </div>
+        )}
+        {filtered.map(name => (
+          <button
+            key={name}
+            className="workout-row"
+            onClick={() => onConfirm(name)}
+          >
+            <div className="main">
+              <div className="name">{names.get(name)}</div>
+              {names.hasRename(name) && <div className="meta"><span>{name}</span></div>}
+            </div>
+            <span className="chev"><Icon.Chevron /></span>
+          </button>
+        ))}
+        <div className="safe-bottom" />
+      </div>
     </div>
   );
 }
@@ -210,7 +325,6 @@ function TopSetChart({ history }) {
 
   const first = points[0], last = points[points.length - 1];
   const diff = last.weight - first.weight;
-  const tone = diff > 0 ? 'up' : diff < 0 ? 'down' : 'flat';
 
   const yearTicks = [];
   const firstYear = first.date.getFullYear();
@@ -257,7 +371,8 @@ function TopSetChart({ history }) {
   );
 }
 
-function FullHistoryGrid({ history }) {
+function FullHistoryGrid({ history, canonicalName }) {
+  const names = React.useContext(ExerciseNamesContext);
   const routineNames = React.useContext(RoutineNamesContext);
   const display = history.slice().reverse();
   const lastIdx = display.length - 1;
@@ -283,6 +398,9 @@ function FullHistoryGrid({ history }) {
                 <div className="rt" title={routineNames.get(h.session.title)}>
                   {shortRoutine(routineNames.get(h.session.title))}
                 </div>
+                {h.actualName && h.actualName !== canonicalName && (
+                  <div className="alt-tag" title={names.get(h.actualName)}>{names.get(h.actualName)}</div>
+                )}
               </div>
             ))}
             {rows.map(rIdx => (
@@ -314,6 +432,9 @@ function FullHistoryGrid({ history }) {
             <div className="date">{display[lastIdx].session.startTime.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}</div>
             <div className="yr">{display[lastIdx].session.startTime.getFullYear()}</div>
             <div className="rt" style={{ color: 'rgba(20,22,15,0.6)' }}>{shortRoutine(routineNames.get(display[lastIdx].session.title))}</div>
+            {display[lastIdx].actualName && display[lastIdx].actualName !== canonicalName && (
+              <div className="alt-tag" title={names.get(display[lastIdx].actualName)}>{names.get(display[lastIdx].actualName)}</div>
+            )}
           </div>
           {rows.map(rIdx => {
             const set = display[lastIdx].ex.sets[rIdx];

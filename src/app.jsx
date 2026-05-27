@@ -1,6 +1,6 @@
 import React from 'react';
 import { parseCSV, buildModel, mergeSets } from './parser.js';
-import { ExerciseNamesContext, RoutineNamesContext } from './contexts.js';
+import { ExerciseNamesContext, RoutineNamesContext, ExerciseAlternatesContext } from './contexts.js';
 import { storageGet, storageSet, storageDelete, setStorageUser, pushLocalToCloud } from './storage.js';
 import { listenAuth, logout, cloudSet, cloudGetAll, cloudDeleteAll } from './supabase.js';
 import { useTweaks, TweaksPanel, TweakSection, TweakColor, TweakRadio } from './tweaks-panel.jsx';
@@ -30,6 +30,7 @@ const NAME_KEY = 'workout_tracker_filename_v1';
 const RENAMES_KEY = 'workout_exercise_renames_v1';
 const ROUTINE_RENAMES_KEY = 'workout_routine_renames_v1';
 const FOLDERS_KEY = 'workout_folders_v1';
+const ALTERNATES_KEY = 'workout_exercise_alternates_v1';
 
 function setsToJSON(sets) {
   return JSON.stringify(sets.map(s => ({
@@ -62,6 +63,7 @@ function App() {
   const [renames, setRenamesState] = React.useState({});
   const [routineRenames, setRoutineRenamesState] = React.useState({});
   const [folders, setFoldersState] = React.useState([]);
+  const [alternates, setAlternatesState] = React.useState({});
   const loadedUidRef = React.useRef(null);
 
   // Listen to Firebase auth state
@@ -90,7 +92,8 @@ function App() {
         const hasLocalRenames = !!localStorage.getItem(RENAMES_KEY);
         const hasLocalRoutineRenames = !!localStorage.getItem(ROUTINE_RENAMES_KEY);
         const hasLocalFolders = !!localStorage.getItem(FOLDERS_KEY);
-        const allLocal = hasLocalSets && hasLocalRenames && hasLocalRoutineRenames && hasLocalFolders;
+        const hasLocalAlternates = !!localStorage.getItem(ALTERNATES_KEY);
+        const allLocal = hasLocalSets && hasLocalRenames && hasLocalRoutineRenames && hasLocalFolders && hasLocalAlternates;
 
         // One request to get everything from cloud if any local data is missing
         let cloudAll = null;
@@ -115,10 +118,17 @@ function App() {
           } else if (hasLocalFolders) {
             try { setFoldersState(foldersFromRaw(JSON.parse(localStorage.getItem(FOLDERS_KEY)))); } catch {}
           }
+          if (!hasLocalAlternates && cloudAll[ALTERNATES_KEY]) {
+            localStorage.setItem(ALTERNATES_KEY, cloudAll[ALTERNATES_KEY]);
+            try { setAlternatesState(JSON.parse(cloudAll[ALTERNATES_KEY])); } catch {}
+          } else if (hasLocalAlternates) {
+            try { setAlternatesState(JSON.parse(localStorage.getItem(ALTERNATES_KEY))); } catch {}
+          }
         } else {
           try { setRenamesState(JSON.parse(localStorage.getItem(RENAMES_KEY))); } catch {}
           try { setRoutineRenamesState(JSON.parse(localStorage.getItem(ROUTINE_RENAMES_KEY))); } catch {}
           try { setFoldersState(foldersFromRaw(JSON.parse(localStorage.getItem(FOLDERS_KEY)))); } catch {}
+          try { setAlternatesState(JSON.parse(localStorage.getItem(ALTERNATES_KEY))); } catch {}
         }
 
         // Push any existing local data up to Supabase (first login on this device)
@@ -187,6 +197,33 @@ function App() {
   function deleteFolder(id) {
     persistFolders(folders.filter(f => f.id !== id));
   }
+
+  function persistAlternates(next) {
+    setAlternatesState(next);
+    const serialized = JSON.stringify(next);
+    try { localStorage.setItem(ALTERNATES_KEY, serialized); } catch {}
+    if (currentUser) cloudSet(currentUser.id, ALTERNATES_KEY, serialized).catch(() => {});
+  }
+
+  const alternatesApi = React.useMemo(() => ({
+    getCanonical: (name) => alternates[name] || name,
+    link: (altName, canonicalName) => {
+      const next = { ...alternates, [altName]: canonicalName };
+      // remap anything that pointed to altName as canonical
+      Object.keys(next).forEach(k => { if (next[k] === altName) next[k] = canonicalName; });
+      persistAlternates(next);
+    },
+    unlink: (name) => {
+      const next = { ...alternates };
+      delete next[name];
+      persistAlternates(next);
+    },
+    getGroup: (name) => {
+      const canonical = alternates[name] || name;
+      return [canonical, ...Object.keys(alternates).filter(k => alternates[k] === canonical)];
+    },
+    isAlternate: (name) => !!alternates[name],
+  }), [alternates, currentUser]);
 
   const namesApi = React.useMemo(() => ({
     get: (orig) => (orig && renames[orig]) ? renames[orig] : orig,
@@ -330,12 +367,14 @@ function App() {
           try { localStorage.removeItem(RENAMES_KEY); } catch {}
           try { localStorage.removeItem(ROUTINE_RENAMES_KEY); } catch {}
           try { localStorage.removeItem(FOLDERS_KEY); } catch {}
+          try { localStorage.removeItem(ALTERNATES_KEY); } catch {}
           if (currentUser) cloudDeleteAll(currentUser.id).catch(() => {});
           setSets(null);
           setFilename(null);
           setRenamesState({});
           setRoutineRenamesState({});
           setFoldersState([]);
+          setAlternatesState({});
           setRoute({ name: 'import' });
         }}
       />
@@ -399,12 +438,14 @@ function App() {
     <div className="app-root">
       <ExerciseNamesContext.Provider value={namesApi}>
         <RoutineNamesContext.Provider value={routineNamesApi}>
-          {screen}
-          <TweaksUI tweaks={tweaks} setTweak={setTweaksRaw} onLogout={() => {
-            logout();
-            setStorageUser(null);
-            setCurrentUser(null);
-          }} />
+          <ExerciseAlternatesContext.Provider value={alternatesApi}>
+            {screen}
+            <TweaksUI tweaks={tweaks} setTweak={setTweaksRaw} onLogout={() => {
+              logout();
+              setStorageUser(null);
+              setCurrentUser(null);
+            }} />
+          </ExerciseAlternatesContext.Provider>
         </RoutineNamesContext.Provider>
       </ExerciseNamesContext.Provider>
     </div>
