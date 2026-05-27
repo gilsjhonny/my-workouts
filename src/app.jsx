@@ -316,6 +316,7 @@ function App() {
         workouts={workouts}
         onOpen={(title) => setRoute({ name: 'detail', title })}
         onReimport={onReimport}
+        onLogout={() => { logout(); setStorageUser(null); setCurrentUser(null); }}
       />
     );
   } else if (route.name === 'folders') {

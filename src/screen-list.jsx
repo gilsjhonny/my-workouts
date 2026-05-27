@@ -4,10 +4,11 @@ import { fmtRelative } from './parser.js';
 import { RoutineNamesContext } from './contexts.js';
 import { BottomTabs } from './screen-folders.jsx';
 
-function ListScreen({ workouts, onOpen, onReimport }) {
+function ListScreen({ workouts, onOpen, onReimport, onLogout }) {
   const routineNames = React.useContext(RoutineNamesContext);
   const [query, setQuery] = React.useState('');
   const [showAll, setShowAll] = React.useState(false);
+  const [menuOpen, setMenuOpen] = React.useState(false);
 
   const filtered = React.useMemo(() => {
     let arr = workouts.slice();
@@ -35,7 +36,22 @@ function ListScreen({ workouts, onOpen, onReimport }) {
       <div className="topbar">
         <button className="iconbtn" onClick={onReimport} aria-label="reimportar"><Icon.File size={16} /></button>
         <div className="title">Mis Entrenos</div>
-        <button className="iconbtn" aria-label="más"><Icon.Dots /></button>
+        <div style={{ position: 'relative' }}>
+          <button className="iconbtn" aria-label="más" onClick={() => setMenuOpen(v => !v)}><Icon.Dots /></button>
+          {menuOpen && (
+            <>
+              <div style={{ position: 'fixed', inset: 0, zIndex: 99 }} onClick={() => setMenuOpen(false)} />
+              <div style={{ position: 'absolute', right: 0, top: '110%', zIndex: 100, background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 14, boxShadow: 'var(--shadow-md)', minWidth: 160, overflow: 'hidden' }}>
+                <button
+                  onClick={() => { setMenuOpen(false); onLogout?.(); }}
+                  style={{ width: '100%', textAlign: 'left', padding: '13px 16px', fontSize: 14, color: 'var(--down)', background: 'none', border: 'none', cursor: 'pointer' }}
+                >
+                  Cerrar sesión
+                </button>
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       <div className="page-head">
