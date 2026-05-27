@@ -360,11 +360,11 @@ function App() {
         folder={folder}
         workouts={workouts}
         onBack={() => setRoute({ name: 'folders' })}
-        onOpenRoutine={(title) => setRoute({ name: 'detail', title, from: { name: 'folder-detail', id: folder.id } })}
+        onOpenRoutine={(title) => setRoute({ name: 'detail', title, dateFrom: folder.dateFrom || null, from: { name: 'folder-detail', id: folder.id } })}
         onRename={(name) => updateFolder(folder.id, { name })}
         onDelete={() => { deleteFolder(folder.id); setRoute({ name: 'folders' }); }}
         onUpdateRoutines={(titles) => updateFolder(folder.id, { routineTitles: titles })}
-        onUpdateDates={(dateFrom, dateTo) => updateFolder(folder.id, { dateFrom, dateTo })}
+        onUpdateDateFrom={(dateFrom) => updateFolder(folder.id, { dateFrom })}
       />
     );
   } else if (route.name === 'detail') {
@@ -373,9 +373,12 @@ function App() {
       setRoute({ name: 'list' });
       return null;
     }
+    const filteredWorkout = route.dateFrom
+      ? { ...workout, sessions: workout.sessions.filter(s => s.startTime >= new Date(route.dateFrom)) }
+      : workout;
     screen = (
       <DetailScreen
-        workout={workout}
+        workout={filteredWorkout}
         workouts={workouts}
         onBack={() => setRoute(route.from || { name: 'list' })}
         onOpenExercise={(exerciseName) => setRoute({ name: 'exercise', exerciseName, from: route })}
