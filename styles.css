@@ -525,7 +525,7 @@ button { cursor: pointer; border: 0; background: transparent; }
   gap: 1px;
   background: var(--line);
   min-width: min-content;
-  grid-template-rows: 58px;
+  grid-template-rows: auto;
   grid-auto-rows: 84px;
 }
 .history-grid .hcell {
@@ -550,6 +550,7 @@ button { cursor: pointer; border: 0; background: transparent; }
   background: var(--surface-2);
   padding: 6px 10px;
   justify-content: center;
+  min-height: 62px;
 }
 .history-grid .hcell.head .date {
   font-family: var(--font-display);
@@ -579,13 +580,11 @@ button { cursor: pointer; border: 0; background: transparent; }
 }
 .history-grid .hcell.head.cur .rt { color: rgba(20,22,15,0.55); }
 .history-grid .hcell.head .alt-tag {
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 600;
-  color: var(--accent-ink);
-  background: var(--accent-soft);
   border-radius: 4px;
-  padding: 1px 4px;
-  margin-top: 3px;
+  padding: 2px 5px;
+  margin-top: 4px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

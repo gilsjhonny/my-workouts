@@ -371,6 +371,26 @@ function TopSetChart({ history }) {
   );
 }
 
+const COL_PALETTE = [
+  { bg: 'rgba(239,68,68,0.13)',   fg: 'rgba(185,28,28,0.9)'  },
+  { bg: 'rgba(249,115,22,0.13)',  fg: 'rgba(194,65,12,0.9)'  },
+  { bg: 'rgba(234,179,8,0.13)',   fg: 'rgba(161,98,7,0.9)'   },
+  { bg: 'rgba(34,197,94,0.13)',   fg: 'rgba(21,128,61,0.9)'  },
+  { bg: 'rgba(59,130,246,0.13)',  fg: 'rgba(29,78,216,0.9)'  },
+  { bg: 'rgba(168,85,247,0.13)',  fg: 'rgba(126,34,206,0.9)' },
+  { bg: 'rgba(236,72,153,0.13)',  fg: 'rgba(190,24,93,0.9)'  },
+  { bg: 'rgba(20,184,166,0.13)',  fg: 'rgba(15,118,110,0.9)' },
+];
+
+function buildColorMap(display) {
+  const map = new Map();
+  display.forEach(h => {
+    const key = h.actualName || '';
+    if (key && !map.has(key)) map.set(key, COL_PALETTE[map.size % COL_PALETTE.length]);
+  });
+  return map;
+}
+
 export function FullHistoryGrid({ history, canonicalName }) {
   const names = React.useContext(ExerciseNamesContext);
   const routineNames = React.useContext(RoutineNamesContext);
@@ -379,6 +399,13 @@ export function FullHistoryGrid({ history, canonicalName }) {
   const maxSets = display.reduce((m, h) => Math.max(m, h.ex.sets.length), 0);
   const rows = Array.from({ length: maxSets }, (_, i) => i);
   const tops = display.map(h => topSetOf(h.ex.sets.filter(s => s.setType !== 'warmup')));
+
+  const distinctNames = new Set(display.map(h => h.actualName).filter(Boolean));
+  const useColors = distinctNames.size > 1;
+  const colorMap = useColors ? buildColorMap(display) : new Map();
+
+  const colBg = (h) => useColors ? (colorMap.get(h.actualName)?.bg || undefined) : undefined;
+  const colFg = (h) => useColors ? (colorMap.get(h.actualName)?.fg || undefined) : undefined;
 
   const wrapRef = React.useRef(null);
   React.useLayoutEffect(() => {
@@ -392,14 +419,16 @@ export function FullHistoryGrid({ history, canonicalName }) {
           <div className="history-grid old" style={{ gridTemplateColumns: `28px repeat(${display.length - 1}, minmax(96px, 1fr))` }}>
             <div className="hcell idx">#</div>
             {display.slice(0, lastIdx).map((h) => (
-              <div key={h.session.key} className="hcell head">
+              <div key={h.session.key} className="hcell head" style={{ background: colBg(h) }}>
                 <div className="date">{h.session.startTime.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}</div>
                 <div className="yr">{h.session.startTime.getFullYear()}</div>
                 <div className="rt" title={routineNames.get(h.session.title)}>
                   {shortRoutine(routineNames.get(h.session.title))}
                 </div>
                 {h.actualName && h.actualName !== canonicalName && (
-                  <div className="alt-tag" title={names.get(h.actualName)}>{names.get(h.actualName)}</div>
+                  <div className="alt-tag" style={useColors ? { background: colBg(h), color: colFg(h), outline: `1px solid ${colFg(h)}` } : undefined} title={names.get(h.actualName)}>
+                    {names.get(h.actualName)}
+                  </div>
                 )}
               </div>
             ))}
@@ -410,7 +439,7 @@ export function FullHistoryGrid({ history, canonicalName }) {
                   const set = h.ex.sets[rIdx];
                   const isTop = set && tops[ci] && set === tops[ci];
                   return (
-                    <div key={h.session.key + ':' + rIdx} className={'hcell set' + (isTop ? ' top' : '')}>
+                    <div key={h.session.key + ':' + rIdx} className={'hcell set' + (isTop ? ' top' : '')} style={{ background: colBg(h) }}>
                       <SetMini set={set} prev={null} isTop={isTop} />
                     </div>
                   );
@@ -433,7 +462,9 @@ export function FullHistoryGrid({ history, canonicalName }) {
             <div className="yr">{display[lastIdx].session.startTime.getFullYear()}</div>
             <div className="rt" style={{ color: 'rgba(20,22,15,0.6)' }}>{shortRoutine(routineNames.get(display[lastIdx].session.title))}</div>
             {display[lastIdx].actualName && display[lastIdx].actualName !== canonicalName && (
-              <div className="alt-tag" title={names.get(display[lastIdx].actualName)}>{names.get(display[lastIdx].actualName)}</div>
+              <div className="alt-tag" style={useColors ? { background: colorMap.get(display[lastIdx].actualName)?.bg, color: colorMap.get(display[lastIdx].actualName)?.fg, outline: `1px solid ${colorMap.get(display[lastIdx].actualName)?.fg}` } : undefined} title={names.get(display[lastIdx].actualName)}>
+                {names.get(display[lastIdx].actualName)}
+              </div>
             )}
           </div>
           {rows.map(rIdx => {
