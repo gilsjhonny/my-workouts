@@ -79,7 +79,7 @@ function App() {
       return;
     }
 
-    setStorageUser(currentUser.uid);
+    setStorageUser(currentUser.id);
 
     (async () => {
       try {
@@ -91,7 +91,7 @@ function App() {
         if (renamesRaw) {
           try { setRenamesState(JSON.parse(renamesRaw)); } catch {}
         } else {
-          const cloud = await cloudGet(currentUser.uid, RENAMES_KEY).catch(() => null);
+          const cloud = await cloudGet(currentUser.id, RENAMES_KEY).catch(() => null);
           if (cloud) {
             localStorage.setItem(RENAMES_KEY, cloud);
             try { setRenamesState(JSON.parse(cloud)); } catch {}
@@ -101,7 +101,7 @@ function App() {
         if (routineRenamesRaw) {
           try { setRoutineRenamesState(JSON.parse(routineRenamesRaw)); } catch {}
         } else {
-          const cloud = await cloudGet(currentUser.uid, ROUTINE_RENAMES_KEY).catch(() => null);
+          const cloud = await cloudGet(currentUser.id, ROUTINE_RENAMES_KEY).catch(() => null);
           if (cloud) {
             localStorage.setItem(ROUTINE_RENAMES_KEY, cloud);
             try { setRoutineRenamesState(JSON.parse(cloud)); } catch {}
@@ -111,7 +111,7 @@ function App() {
         if (foldersRaw) {
           try { setFoldersState(foldersFromRaw(JSON.parse(foldersRaw))); } catch {}
         } else {
-          const cloud = await cloudGet(currentUser.uid, FOLDERS_KEY).catch(() => null);
+          const cloud = await cloudGet(currentUser.id, FOLDERS_KEY).catch(() => null);
           if (cloud) {
             localStorage.setItem(FOLDERS_KEY, cloud);
             try { setFoldersState(foldersFromRaw(JSON.parse(cloud))); } catch {}
@@ -119,7 +119,7 @@ function App() {
         }
 
         // Push any existing local data up to Supabase (first login on this device)
-        pushLocalToCloud(currentUser.uid).catch(() => {});
+        pushLocalToCloud(currentUser.id).catch(() => {});
 
         // Load sets
         const storedName = await storageGet(NAME_KEY);
@@ -143,7 +143,7 @@ function App() {
           // No local data → try to restore from cloud
           if (!loadedSets) {
             try {
-              await syncFromCloud(currentUser.uid);
+              await syncFromCloud(currentUser.id);
               const cloudJson = await storageGet(SETS_KEY);
               if (cloudJson) loadedSets = setsFromJSON(cloudJson);
               const cloudName = await storageGet(NAME_KEY);
@@ -168,7 +168,7 @@ function App() {
     setFoldersState(next);
     const serialized = JSON.stringify(next.map(f => ({ ...f, createdAt: f.createdAt.toISOString() })));
     try { localStorage.setItem(FOLDERS_KEY, serialized); } catch {}
-    if (currentUser) cloudSet(currentUser.uid, FOLDERS_KEY, serialized).catch(() => {});
+    if (currentUser) cloudSet(currentUser.id, FOLDERS_KEY, serialized).catch(() => {});
   }
 
   function createFolder(name) {
@@ -193,7 +193,7 @@ function App() {
       setRenamesState(next);
       const serialized = JSON.stringify(next);
       try { localStorage.setItem(RENAMES_KEY, serialized); } catch {}
-      if (currentUser) cloudSet(currentUser.uid, RENAMES_KEY, serialized).catch(() => {});
+      if (currentUser) cloudSet(currentUser.id, RENAMES_KEY, serialized).catch(() => {});
     },
     hasRename: (orig) => !!renames[orig],
   }), [renames, currentUser]);
@@ -207,7 +207,7 @@ function App() {
       setRoutineRenamesState(next);
       const serialized = JSON.stringify(next);
       try { localStorage.setItem(ROUTINE_RENAMES_KEY, serialized); } catch {}
-      if (currentUser) cloudSet(currentUser.uid, ROUTINE_RENAMES_KEY, serialized).catch(() => {});
+      if (currentUser) cloudSet(currentUser.id, ROUTINE_RENAMES_KEY, serialized).catch(() => {});
     },
     hasRename: (orig) => !!routineRenames[orig],
   }), [routineRenames, currentUser]);
