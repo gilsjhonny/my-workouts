@@ -1,8 +1,8 @@
 import React from 'react';
 import { parseCSV, buildModel, mergeSets } from './parser.js';
 import { ExerciseNamesContext, RoutineNamesContext } from './contexts.js';
-import { storageGet, storageSet, storageDelete, setStorageUser, syncFromCloud, pushLocalToCloud } from './storage.js';
-import { listenAuth, logout, cloudSet, cloudGet, cloudDeleteAll } from './supabase.js';
+import { storageGet, storageSet, storageDelete, setStorageUser, pushLocalToCloud } from './storage.js';
+import { listenAuth, logout, cloudSet, cloudGetAll, cloudDeleteAll } from './supabase.js';
 import { useTweaks, TweaksPanel, TweakSection, TweakColor, TweakRadio } from './tweaks-panel.jsx';
 import AuthScreen from './screen-auth.jsx';
 import ImportScreen from './screen-import.jsx';
@@ -83,39 +83,39 @@ function App() {
 
     (async () => {
       try {
-        // Load renames + folders (local first, cloud fallback)
-        const renamesRaw = localStorage.getItem(RENAMES_KEY);
-        const routineRenamesRaw = localStorage.getItem(ROUTINE_RENAMES_KEY);
-        const foldersRaw = localStorage.getItem(FOLDERS_KEY);
+        const hasLocalSets = !!(await storageGet(SETS_KEY));
+        const hasLocalRenames = !!localStorage.getItem(RENAMES_KEY);
+        const hasLocalRoutineRenames = !!localStorage.getItem(ROUTINE_RENAMES_KEY);
+        const hasLocalFolders = !!localStorage.getItem(FOLDERS_KEY);
+        const allLocal = hasLocalSets && hasLocalRenames && hasLocalRoutineRenames && hasLocalFolders;
 
-        if (renamesRaw) {
-          try { setRenamesState(JSON.parse(renamesRaw)); } catch {}
-        } else {
-          const cloud = await cloudGet(currentUser.id, RENAMES_KEY).catch(() => null);
-          if (cloud) {
-            localStorage.setItem(RENAMES_KEY, cloud);
-            try { setRenamesState(JSON.parse(cloud)); } catch {}
+        // One request to get everything from cloud if any local data is missing
+        let cloudAll = null;
+        if (!allLocal) {
+          cloudAll = await cloudGetAll(currentUser.id).catch(() => ({}));
+          // Populate missing local data from cloud
+          if (!hasLocalRenames && cloudAll[RENAMES_KEY]) {
+            localStorage.setItem(RENAMES_KEY, cloudAll[RENAMES_KEY]);
+            try { setRenamesState(JSON.parse(cloudAll[RENAMES_KEY])); } catch {}
+          } else if (hasLocalRenames) {
+            try { setRenamesState(JSON.parse(localStorage.getItem(RENAMES_KEY))); } catch {}
           }
-        }
-
-        if (routineRenamesRaw) {
-          try { setRoutineRenamesState(JSON.parse(routineRenamesRaw)); } catch {}
-        } else {
-          const cloud = await cloudGet(currentUser.id, ROUTINE_RENAMES_KEY).catch(() => null);
-          if (cloud) {
-            localStorage.setItem(ROUTINE_RENAMES_KEY, cloud);
-            try { setRoutineRenamesState(JSON.parse(cloud)); } catch {}
+          if (!hasLocalRoutineRenames && cloudAll[ROUTINE_RENAMES_KEY]) {
+            localStorage.setItem(ROUTINE_RENAMES_KEY, cloudAll[ROUTINE_RENAMES_KEY]);
+            try { setRoutineRenamesState(JSON.parse(cloudAll[ROUTINE_RENAMES_KEY])); } catch {}
+          } else if (hasLocalRoutineRenames) {
+            try { setRoutineRenamesState(JSON.parse(localStorage.getItem(ROUTINE_RENAMES_KEY))); } catch {}
           }
-        }
-
-        if (foldersRaw) {
-          try { setFoldersState(foldersFromRaw(JSON.parse(foldersRaw))); } catch {}
-        } else {
-          const cloud = await cloudGet(currentUser.id, FOLDERS_KEY).catch(() => null);
-          if (cloud) {
-            localStorage.setItem(FOLDERS_KEY, cloud);
-            try { setFoldersState(foldersFromRaw(JSON.parse(cloud))); } catch {}
+          if (!hasLocalFolders && cloudAll[FOLDERS_KEY]) {
+            localStorage.setItem(FOLDERS_KEY, cloudAll[FOLDERS_KEY]);
+            try { setFoldersState(foldersFromRaw(JSON.parse(cloudAll[FOLDERS_KEY]))); } catch {}
+          } else if (hasLocalFolders) {
+            try { setFoldersState(foldersFromRaw(JSON.parse(localStorage.getItem(FOLDERS_KEY)))); } catch {}
           }
+        } else {
+          try { setRenamesState(JSON.parse(localStorage.getItem(RENAMES_KEY))); } catch {}
+          try { setRoutineRenamesState(JSON.parse(localStorage.getItem(ROUTINE_RENAMES_KEY))); } catch {}
+          try { setFoldersState(foldersFromRaw(JSON.parse(localStorage.getItem(FOLDERS_KEY)))); } catch {}
         }
 
         // Push any existing local data up to Supabase (first login on this device)
@@ -140,15 +140,16 @@ function App() {
             }
           }
 
-          // No local data → try to restore from cloud
-          if (!loadedSets) {
-            try {
-              await syncFromCloud(currentUser.id);
-              const cloudJson = await storageGet(SETS_KEY);
-              if (cloudJson) loadedSets = setsFromJSON(cloudJson);
-              const cloudName = await storageGet(NAME_KEY);
-              if (cloudName) setFilename(cloudName);
-            } catch {}
+          // No local sets → restore from cloud data already fetched
+          if (!loadedSets && cloudAll) {
+            if (cloudAll[SETS_KEY]) {
+              loadedSets = setsFromJSON(cloudAll[SETS_KEY]);
+              await storageSet(SETS_KEY, cloudAll[SETS_KEY]);
+            }
+            if (cloudAll[NAME_KEY]) {
+              setFilename(cloudAll[NAME_KEY]);
+              await storageSet(NAME_KEY, cloudAll[NAME_KEY]);
+            }
           }
         }
 
