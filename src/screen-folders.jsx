@@ -181,24 +181,24 @@ function FolderDetailScreen({ folder, workouts, onBack, onOpenRoutine, onRename,
         </div>
       </div>
 
-      <div style={{ padding: '0 16px 12px', display: 'flex', gap: 8, alignItems: 'flex-end' }}>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4 }}>Desde</div>
-          <input
-            type="date"
-            value={folder.dateFrom || ''}
-            onChange={e => onUpdateDateFrom?.(e.target.value || null)}
-            style={{ width: '100%', padding: '9px 12px', borderRadius: 12, border: '1px solid var(--line-2)', background: 'var(--surface)', fontSize: 14 }}
-          />
+      <div style={{ padding: '0 16px 12px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+          <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Desde</div>
+          {folder.dateFrom && (
+            <button
+              onClick={() => onUpdateDateFrom?.(null)}
+              style={{ padding: '2px 0', background: 'none', border: 'none', fontSize: 12, color: 'var(--ink-3)', cursor: 'pointer' }}
+            >
+              Limpiar
+            </button>
+          )}
         </div>
-        {folder.dateFrom && (
-          <button
-            onClick={() => onUpdateDateFrom?.(null)}
-            style={{ padding: '9px 12px', borderRadius: 12, border: '1px solid var(--line)', background: 'var(--surface)', fontSize: 13, color: 'var(--ink-3)', cursor: 'pointer' }}
-          >
-            Limpiar
-          </button>
-        )}
+        <input
+          type="date"
+          value={folder.dateFrom || ''}
+          onChange={e => onUpdateDateFrom?.(e.target.value || null)}
+          style={{ width: '100%', padding: '9px 12px', borderRadius: 12, border: '1px solid var(--line-2)', background: 'var(--surface)', fontSize: 14, boxSizing: 'border-box' }}
+        />
       </div>
 
       <div className="list">
