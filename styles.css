@@ -37,6 +37,7 @@ body {
 }
 
 button, input { font-family: inherit; color: inherit; }
+@media (hover: none) { input { font-size: 16px !important; } }
 button { cursor: pointer; border: 0; background: transparent; }
 
 /* App shell — mobile first, max-width column on larger viewports */
