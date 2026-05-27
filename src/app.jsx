@@ -364,6 +364,7 @@ function App() {
         onRename={(name) => updateFolder(folder.id, { name })}
         onDelete={() => { deleteFolder(folder.id); setRoute({ name: 'folders' }); }}
         onUpdateRoutines={(titles) => updateFolder(folder.id, { routineTitles: titles })}
+        onUpdateDates={(dateFrom, dateTo) => updateFolder(folder.id, { dateFrom, dateTo })}
       />
     );
   } else if (route.name === 'detail') {

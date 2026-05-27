@@ -93,7 +93,7 @@ function FolderListScreen({ folders, onOpen, onCreate, onReimport }) {
   );
 }
 
-function FolderDetailScreen({ folder, workouts, onBack, onOpenRoutine, onRename, onDelete, onUpdateRoutines }) {
+function FolderDetailScreen({ folder, workouts, onBack, onOpenRoutine, onRename, onDelete, onUpdateRoutines, onUpdateDates }) {
   const routineNames = React.useContext(RoutineNamesContext);
   const [editingName, setEditingName] = React.useState(false);
   const [draft, setDraft] = React.useState(folder.name);
@@ -113,16 +113,23 @@ function FolderDetailScreen({ folder, workouts, onBack, onOpenRoutine, onRename,
     setEditingName(false);
   }
 
-  const inFolder = folder.routineTitles
-    .map(t => workouts.find(w => w.title === t))
-    .filter(Boolean)
-    .sort((a, b) => routineNames.get(a.title).localeCompare(routineNames.get(b.title)));
-
-  function removeFromFolder(title) {
-    const display = routineNames.get(title);
-    if (!confirm(`¿Quitar "${display}" de la carpeta?`)) return;
-    onUpdateRoutines(folder.routineTitles.filter(t => t !== title));
-  }
+  // Flat filtered sessions from routines in this folder
+  const sessions = React.useMemo(() => {
+    const titleSet = new Set(folder.routineTitles);
+    const from = folder.dateFrom ? new Date(folder.dateFrom) : null;
+    const to = folder.dateTo ? new Date(folder.dateTo + 'T23:59:59') : null;
+    const result = [];
+    for (const w of workouts) {
+      if (!titleSet.has(w.title)) continue;
+      for (const s of w.sessions) {
+        if (from && s.startTime < from) continue;
+        if (to && s.startTime > to) continue;
+        result.push({ ...s, routineTitle: w.title });
+      }
+    }
+    result.sort((a, b) => (b.startTime?.getTime() || 0) - (a.startTime?.getTime() || 0));
+    return result;
+  }, [workouts, folder.routineTitles, folder.dateFrom, folder.dateTo]);
 
   if (picking) {
     return (
@@ -173,54 +180,85 @@ function FolderDetailScreen({ folder, workouts, onBack, onOpenRoutine, onRename,
           </h1>
         )}
         <div className="when">
-          <span>{inFolder.length} rutina{inFolder.length === 1 ? '' : 's'}</span>
+          <span>{sessions.length} sesión{sessions.length === 1 ? '' : 'es'}</span>
           <span className="dot" />
-          <span>creada {fmtRelative(folder.createdAt)}</span>
+          <span>{folder.routineTitles.length} rutina{folder.routineTitles.length === 1 ? '' : 's'}</span>
         </div>
+      </div>
+
+      <div style={{ padding: '0 16px 8px', display: 'flex', gap: 8, alignItems: 'center' }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4 }}>Desde</div>
+          <input
+            type="date"
+            value={folder.dateFrom || ''}
+            onChange={e => onUpdateDates?.(e.target.value || null, folder.dateTo || null)}
+            style={{ width: '100%', padding: '9px 12px', borderRadius: 12, border: '1px solid var(--line-2)', background: 'var(--surface)', fontSize: 14 }}
+          />
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4 }}>Hasta</div>
+          <input
+            type="date"
+            value={folder.dateTo || ''}
+            onChange={e => onUpdateDates?.(folder.dateFrom || null, e.target.value || null)}
+            style={{ width: '100%', padding: '9px 12px', borderRadius: 12, border: '1px solid var(--line-2)', background: 'var(--surface)', fontSize: 14 }}
+          />
+        </div>
+        {(folder.dateFrom || folder.dateTo) && (
+          <button
+            onClick={() => onUpdateDates?.(null, null)}
+            style={{ marginTop: 20, padding: '9px 10px', borderRadius: 12, border: '1px solid var(--line)', background: 'var(--surface)', fontSize: 12, color: 'var(--ink-3)', cursor: 'pointer', whiteSpace: 'nowrap' }}
+          >
+            Limpiar
+          </button>
+        )}
       </div>
 
       <div className="list">
         <button className="folder-create-btn" onClick={() => setPicking(true)}>
           <Icon.Plus size={18} />
-          <span>{inFolder.length === 0 ? 'Añadir rutinas' : 'Editar rutinas'}</span>
+          <span>{folder.routineTitles.length === 0 ? 'Añadir rutinas' : 'Editar rutinas'}</span>
         </button>
 
-        {inFolder.length === 0 && (
+        {folder.routineTitles.length === 0 && (
           <div className="empty" style={{ paddingTop: 32 }}>
             <div style={{ fontWeight: 600, marginBottom: 4 }}>Carpeta vacía</div>
             <div style={{ fontSize: 13 }}>Añade rutinas para verlas aquí.</div>
           </div>
         )}
 
-        {inFolder.map((w, i) => (
-          <div key={w.title} className="workout-row-wrap">
-            <button
-              className="workout-row fade-in"
-              style={{ animationDelay: `${Math.min(i, 12) * 0.02}s` }}
-              onClick={() => onOpenRoutine(w.title)}
-            >
-              <div className="badge">
-                <span className="glyph">{initials(routineNames.get(w.title))}</span>
-              </div>
-              <div className="main">
-                <div className="name">
-                  {routineNames.get(w.title)}
-                  {routineNames.hasRename(w.title) && <span className="renamed-dot" />}
-                </div>
-                <div className="meta">
-                  <span>{w.sessionCount} {w.sessionCount === 1 ? 'sesión' : 'sesiones'}</span>
-                  <span className="dot" />
-                  <span>{w.exerciseCount} ej</span>
-                  <span className="dot" />
-                  <span>{fmtRelative(w.lastDate)}</span>
-                </div>
-              </div>
-              <span className="chev"><Icon.Chevron /></span>
-            </button>
-            <button className="folder-remove" onClick={(e) => { e.stopPropagation(); removeFromFolder(w.title); }} aria-label="quitar">
-              <Icon.Trash size={14} />
-            </button>
+        {folder.routineTitles.length > 0 && sessions.length === 0 && (
+          <div className="empty" style={{ paddingTop: 32 }}>
+            <div style={{ fontWeight: 600, marginBottom: 4 }}>Sin sesiones</div>
+            <div style={{ fontSize: 13 }}>Ajusta el rango de fechas o añade más rutinas.</div>
           </div>
+        )}
+
+        {sessions.map((s, i) => (
+          <button
+            key={s.key}
+            className="workout-row fade-in"
+            style={{ animationDelay: `${Math.min(i, 12) * 0.02}s` }}
+            onClick={() => onOpenRoutine(s.routineTitle)}
+          >
+            <div className="badge">
+              <span className="glyph">{initials(routineNames.get(s.routineTitle))}</span>
+            </div>
+            <div className="main">
+              <div className="name">
+                {routineNames.get(s.routineTitle)}
+                {routineNames.hasRename(s.routineTitle) && <span className="renamed-dot" />}
+              </div>
+              <div className="meta">
+                <span>{fmtRelative(s.startTime)}</span>
+                <span className="dot" />
+                <span>{s.exercises.length} ej</span>
+                {s.durationMin && <><span className="dot" /><span>{s.durationMin} min</span></>}
+              </div>
+            </div>
+            <span className="chev"><Icon.Chevron /></span>
+          </button>
         ))}
         <div className="safe-bottom" />
       </div>
