@@ -1,0 +1,72 @@
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_ANON_KEY
+);
+
+export default supabase;
+
+export function listenAuth(cb) {
+  supabase.auth.getSession().then(({ data: { session } }) => {
+    cb(session?.user ?? null);
+  });
+  const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
+    cb(session?.user ?? null);
+  });
+  return () => subscription.unsubscribe();
+}
+
+export async function login(email, password) {
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) throw error;
+  return data.user;
+}
+
+export async function signup(email, password) {
+  const { data, error } = await supabase.auth.signUp({ email, password });
+  if (error) throw error;
+  return data.user;
+}
+
+export async function logout() {
+  await supabase.auth.signOut();
+}
+
+export async function googleSignIn() {
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: window.location.origin },
+  });
+  if (error) throw error;
+}
+
+export async function cloudSet(uid, key, value) {
+  const { error } = await supabase
+    .from('user_data')
+    .upsert({ user_id: uid, key, value, updated_at: new Date().toISOString() }, { onConflict: 'user_id,key' });
+  if (error) console.warn('cloudSet error:', error.message);
+}
+
+export async function cloudGet(uid, key) {
+  const { data } = await supabase
+    .from('user_data')
+    .select('value')
+    .eq('user_id', uid)
+    .eq('key', key)
+    .single();
+  return data?.value;
+}
+
+export async function cloudDelete(uid, key) {
+  await supabase.from('user_data').delete().eq('user_id', uid).eq('key', key);
+}
+
+export async function cloudGetAll(uid) {
+  const { data } = await supabase
+    .from('user_data')
+    .select('key, value')
+    .eq('user_id', uid);
+  if (!data) return {};
+  return Object.fromEntries(data.map(r => [r.key, r.value]));
+}

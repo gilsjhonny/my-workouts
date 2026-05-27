@@ -1,5 +1,5 @@
 import { openDB } from 'idb';
-import { cloudSet, cloudGet, cloudDelete, cloudGetAll } from './firebase.js';
+import { cloudSet, cloudGet, cloudDelete, cloudGetAll } from './supabase.js';
 
 const DB_NAME = 'workout-tracker';
 const DB_VERSION = 1;

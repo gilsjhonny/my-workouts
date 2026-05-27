@@ -1,5 +1,5 @@
 import React from 'react';
-import { login, signup, googleSignIn } from './firebase.js';
+import { login, signup, googleSignIn } from './supabase.js';
 
 function AuthScreen() {
   const [mode, setMode] = React.useState('login');
@@ -48,7 +48,7 @@ function AuthScreen() {
             setLoading(true);
             setError(null);
             try { await googleSignIn(); }
-            catch (err) { setError(friendlyError(err.code)); setLoading(false); }
+            catch (err) { setError(err.message); setLoading(false); }
           }}
           disabled={loading}
           style={{ ...inputStyle, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, fontWeight: 600, fontSize: 15, cursor: 'pointer', padding: '13px 16px' }}

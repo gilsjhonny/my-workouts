@@ -2,7 +2,7 @@ import React from 'react';
 import { parseCSV, buildModel, mergeSets } from './parser.js';
 import { ExerciseNamesContext, RoutineNamesContext } from './contexts.js';
 import { storageGet, storageSet, storageDelete, setStorageUser, syncFromCloud } from './storage.js';
-import { listenAuth, logout, cloudSet, cloudGet } from './firebase.js';
+import { listenAuth, logout, cloudSet, cloudGet } from './supabase.js';
 import { useTweaks, TweaksPanel, TweakSection, TweakColor, TweakRadio } from './tweaks-panel.jsx';
 import AuthScreen from './screen-auth.jsx';
 import ImportScreen from './screen-import.jsx';
