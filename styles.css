@@ -48,8 +48,11 @@ button { cursor: pointer; border: 0; background: transparent; }
   background: var(--bg);
 }
 .app-frame {
+  /* Side gutters that center content to a max width while letting bars
+     break out to full width via negative margins. 0 below the max width. */
+  --content-max: 600px;
+  --gutter: max(0px, calc((100vw - var(--content-max)) / 2));
   width: 100%;
-  max-width: 460px;
   height: 100dvh;
   background: var(--bg);
   position: relative;
@@ -57,16 +60,7 @@ button { cursor: pointer; border: 0; background: transparent; }
   flex-direction: column;
   overflow-y: auto;
   overflow-x: hidden;
-}
-@media (min-width: 720px) {
-  .app-frame {
-    max-width: 600px;
-    height: 100dvh;
-    border-left: 1px solid var(--line);
-    border-right: 1px solid var(--line);
-    overflow-y: auto;
-    overflow-x: hidden;
-  }
+  padding-inline: var(--gutter);
 }
 
 /* Top bar */
@@ -80,6 +74,9 @@ button { cursor: pointer; border: 0; background: transparent; }
   top: 0;
   z-index: 6;
   background: var(--bg);
+  /* Span full width but keep inner content aligned to the centered column */
+  margin-inline: calc(-1 * var(--gutter));
+  padding-inline: calc(20px + var(--gutter));
 }
 .topbar .iconbtn {
   width: 40px; height: 40px;
@@ -1233,6 +1230,10 @@ button { cursor: pointer; border: 0; background: transparent; }
   padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
   gap: 4px;
   margin-top: auto;
+  /* Span full width but keep the tabs aligned to the centered column */
+  margin-inline: calc(-1 * var(--gutter));
+  padding-left: calc(10px + var(--gutter));
+  padding-right: calc(10px + var(--gutter));
 }
 .tabbar .tab {
   flex: 1;
