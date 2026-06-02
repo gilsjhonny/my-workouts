@@ -27,7 +27,7 @@ const ACCENT_PRESETS = {
   lavender:{ accent: '#cdc1f9', soft: '#e6dffa', label: 'Lavender' },
 };
 
-const APP_VERSION = 'build-9-diag';
+const APP_VERSION = 'build-10-host';
 const SETS_KEY = 'workout_tracker_sets_v2';
 const STORAGE_KEY = 'workout_tracker_csv_v1';
 const NAME_KEY = 'workout_tracker_filename_v1';
@@ -450,7 +450,8 @@ function App() {
               const lt = back.reduce((m, s) => s.startTime && s.startTime > m ? s.startTime : m, new Date(0));
               if (lt.getTime() > 0) cloudLatest = lt.toLocaleDateString('es-ES');
             }
-            alert(`Usuario: ${currentUser.email}\nID: ${currentUser.id}\n\nEnviado: ${localN} entrenos (${payloadKB} KB)\nVerificado en nube: ${cloudN} entrenos, más reciente ${cloudLatest}`);
+            const host = (import.meta.env.VITE_SUPABASE_URL || '').replace(/^https?:\/\//, '').split('.')[0];
+            alert(`Versión: ${APP_VERSION}\nhost=${host}\nUsuario: ${currentUser.email}\n\nEnviado: ${localN} entrenos (${payloadKB} KB)\nVerificado en nube: ${cloudN} entrenos, más reciente ${cloudLatest}`);
           } catch (e) { alert('Error al subir: ' + e.message); }
         } : null}
         onSync={currentUser ? doSync : null}
