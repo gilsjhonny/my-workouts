@@ -385,9 +385,9 @@ function App() {
         onLogout={() => { logout(); setStorageUser(null); setCurrentUser(null); }}
         onSync={currentUser ? async () => {
           try {
-            const count = await fullSyncFromCloud(currentUser.id);
-            if (count === 0) { alert('La nube no tiene datos para este usuario. Asegúrate de haber subido los datos desde el otro dispositivo.'); }
-            else { window.location.reload(); }
+            const { count, summary } = await fullSyncFromCloud(currentUser.id);
+            if (count === 0) { alert('La nube no tiene datos para este usuario.'); }
+            else { alert(summary + '\n\nRecargando…'); window.location.reload(); }
           } catch (e) { alert('Error al sincronizar: ' + e.message); }
         } : null}
         onClearData={() => {
@@ -414,9 +414,9 @@ function App() {
         } : null}
         onSync={currentUser ? async () => {
           try {
-            const count = await fullSyncFromCloud(currentUser.id);
-            if (count === 0) { alert('La nube no tiene datos para este usuario. Asegúrate de haber subido los datos desde el otro dispositivo.'); }
-            else { window.location.reload(); }
+            const { count, summary } = await fullSyncFromCloud(currentUser.id);
+            if (count === 0) { alert('La nube no tiene datos para este usuario.'); }
+            else { alert(summary + '\n\nRecargando…'); window.location.reload(); }
           } catch (e) { alert('Error al sincronizar: ' + e.message); }
         } : null}
         onClearAll={async () => {

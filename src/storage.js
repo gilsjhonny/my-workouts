@@ -67,11 +67,11 @@ const LS_KEYS = [
 export async function fullSyncFromCloud(uid) {
   const all = await cloudGetAll(uid);
   const keys = Object.keys(all);
-  if (keys.length === 0) return 0;
+  if (keys.length === 0) return { count: 0, summary: 'La nube no tiene datos.' };
+
   const db = await getDB();
   const tx = db.transaction(STORE, 'readwrite');
   await Promise.all(Object.entries(all).map(([k, v]) => {
-    // If Supabase returned a parsed object instead of a string, re-stringify it
     const stored = typeof v === 'string' ? v : JSON.stringify(v);
     return tx.store.put(stored, k);
   }));
@@ -82,7 +82,11 @@ export async function fullSyncFromCloud(uid) {
       localStorage.setItem(k, stored);
     }
   });
-  return keys.length;
+
+  const setsValue = all['workout_tracker_sets_v2'];
+  const setsSize = setsValue ? Math.round((typeof setsValue === 'string' ? setsValue : JSON.stringify(setsValue)).length / 1024) + ' KB' : 'no encontrado';
+  const summary = `Claves recibidas: ${keys.join(', ')}\nTamaño datos entrenos: ${setsSize}`;
+  return { count: keys.length, summary };
 }
 
 export async function pushLocalToCloud(uid) {
