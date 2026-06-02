@@ -623,7 +623,7 @@ export function SetMini({ set, prev, isTop }) {
       {rirText && <div className="rir">{rirText}</div>}
       <div className="flags">
         {isTop && <span className="flag top-tag">TOP</span>}
-        {isWarmup && <span className="flag warm">cal.</span>}
+        {isWarmup && <span className="flag warm">Calent.</span>}
         {isFailure && <span className="flag fail">fallo</span>}
         {isDropset && <span className="flag warm">drop</span>}
         {deltaEl}

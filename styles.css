@@ -685,7 +685,15 @@ button { cursor: pointer; border: 0; background: transparent; }
   margin-top: 1px;
   white-space: nowrap;
 }
+.setmini.warmup {
+  background: rgba(240, 199, 94, 0.13);
+  border-left: 2px solid rgba(240, 199, 94, 0.55);
+  border-radius: 0 4px 4px 0;
+  padding: 2px 5px;
+  width: 100%;
+}
 .setmini.warmup .main, .setmini.warmup .rir { color: var(--ink-3); }
+.setmini .flag.warm { background: rgba(240,199,94,0.2); color: var(--ink-2); border: 1px solid rgba(240,199,94,0.5); }
 .setmini .flags {
   display: flex;
   flex-wrap: wrap;
@@ -702,7 +710,6 @@ button { cursor: pointer; border: 0; background: transparent; }
   text-transform: lowercase;
   letter-spacing: 0.02em;
 }
-.setmini .flag.warm { background: var(--surface-2); color: var(--ink-3); border: 1px dashed var(--line-2); }
 .setmini .flag.fail { background: rgba(224,122,95,0.13); color: var(--down); }
 .setmini .minidelta {
   font-family: var(--font-text);
