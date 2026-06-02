@@ -66,11 +66,14 @@ const LS_KEYS = [
 
 export async function fullSyncFromCloud(uid) {
   const all = await cloudGetAll(uid);
+  const count = Object.keys(all).length;
+  if (count === 0) return 0;
   const db = await getDB();
   const tx = db.transaction(STORE, 'readwrite');
   await Promise.all(Object.entries(all).map(([k, v]) => tx.store.put(v, k)));
   await tx.done;
   LS_KEYS.forEach(k => { if (all[k]) localStorage.setItem(k, all[k]); });
+  return count;
 }
 
 export async function pushLocalToCloud(uid) {

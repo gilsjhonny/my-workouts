@@ -383,7 +383,13 @@ function App() {
         onContinue={() => setRoute({ name: 'list' })}
         currentUser={currentUser}
         onLogout={() => { logout(); setStorageUser(null); setCurrentUser(null); }}
-        onSync={currentUser ? async () => { await fullSyncFromCloud(currentUser.id); window.location.reload(); } : null}
+        onSync={currentUser ? async () => {
+          try {
+            const count = await fullSyncFromCloud(currentUser.id);
+            if (count === 0) { alert('La nube no tiene datos para este usuario. Asegúrate de haber subido los datos desde el otro dispositivo.'); }
+            else { window.location.reload(); }
+          } catch (e) { alert('Error al sincronizar: ' + e.message); }
+        } : null}
         onClearData={() => {
           storageDelete(SETS_KEY).catch(() => {});
           storageDelete(NAME_KEY).catch(() => {});
@@ -400,7 +406,19 @@ function App() {
         onReimport={onReimport}
         currentUser={currentUser}
         onLogout={() => { logout(); setStorageUser(null); setCurrentUser(null); }}
-        onSync={currentUser ? async () => { await fullSyncFromCloud(currentUser.id); window.location.reload(); } : null}
+        onPush={currentUser ? async () => {
+          try {
+            await pushLocalToCloud(currentUser.id);
+            alert('Datos subidos a la nube correctamente.');
+          } catch (e) { alert('Error al subir: ' + e.message); }
+        } : null}
+        onSync={currentUser ? async () => {
+          try {
+            const count = await fullSyncFromCloud(currentUser.id);
+            if (count === 0) { alert('La nube no tiene datos para este usuario. Asegúrate de haber subido los datos desde el otro dispositivo.'); }
+            else { window.location.reload(); }
+          } catch (e) { alert('Error al sincronizar: ' + e.message); }
+        } : null}
         onClearAll={async () => {
           storageDelete(SETS_KEY).catch(() => {});
           storageDelete(NAME_KEY).catch(() => {});
