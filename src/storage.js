@@ -67,26 +67,28 @@ const LS_KEYS = [
 export async function fullSyncFromCloud(uid) {
   const all = await cloudGetAll(uid);
   const keys = Object.keys(all);
-  if (keys.length === 0) return { count: 0, summary: 'La nube no tiene datos.' };
+  if (keys.length === 0) return { count: 0, data: null };
 
-  const db = await getDB();
-  const tx = db.transaction(STORE, 'readwrite');
-  await Promise.all(Object.entries(all).map(([k, v]) => {
-    const stored = typeof v === 'string' ? v : JSON.stringify(v);
-    return tx.store.put(stored, k);
-  }));
-  await tx.done;
+  // Write to IndexedDB and localStorage (best-effort, state update is authoritative)
+  try {
+    const db = await getDB();
+    const tx = db.transaction(STORE, 'readwrite');
+    await Promise.all(Object.entries(all).map(([k, v]) => {
+      const stored = typeof v === 'string' ? v : JSON.stringify(v);
+      return tx.store.put(stored, k);
+    }));
+    await tx.done;
+  } catch (e) {
+    console.warn('IndexedDB write failed during sync:', e);
+  }
   LS_KEYS.forEach(k => {
     if (all[k] != null) {
       const stored = typeof all[k] === 'string' ? all[k] : JSON.stringify(all[k]);
-      localStorage.setItem(k, stored);
+      try { localStorage.setItem(k, stored); } catch {}
     }
   });
 
-  const setsValue = all['workout_tracker_sets_v2'];
-  const setsSize = setsValue ? Math.round((typeof setsValue === 'string' ? setsValue : JSON.stringify(setsValue)).length / 1024) + ' KB' : 'no encontrado';
-  const summary = `Claves recibidas: ${keys.join(', ')}\nTamaño datos entrenos: ${setsSize}`;
-  return { count: keys.length, summary };
+  return { count: keys.length, data: all };
 }
 
 export async function pushLocalToCloud(uid) {

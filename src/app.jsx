@@ -386,9 +386,15 @@ function App() {
         onLogout={() => { logout(); setStorageUser(null); setCurrentUser(null); }}
         onSync={currentUser ? async () => {
           try {
-            const { count, summary } = await fullSyncFromCloud(currentUser.id);
-            if (count === 0) { alert('La nube no tiene datos para este usuario.'); }
-            else { alert(summary + '\n\nRecargando…'); window.location.reload(); }
+            const { count, data } = await fullSyncFromCloud(currentUser.id);
+            if (count === 0 || !data) { alert('La nube no tiene datos para este usuario.'); return; }
+            if (data[SETS_KEY]) { try { setSets(setsFromJSON(data[SETS_KEY])); } catch {} }
+            if (data[NAME_KEY]) setFilename(data[NAME_KEY]);
+            if (data[RENAMES_KEY]) { try { setRenamesState(JSON.parse(data[RENAMES_KEY])); } catch {} }
+            if (data[ROUTINE_RENAMES_KEY]) { try { setRoutineRenamesState(JSON.parse(data[ROUTINE_RENAMES_KEY])); } catch {} }
+            if (data[FOLDERS_KEY]) { try { setFoldersState(foldersFromRaw(JSON.parse(data[FOLDERS_KEY]))); } catch {} }
+            if (data[ALTERNATES_KEY]) { try { setAlternatesState(JSON.parse(data[ALTERNATES_KEY])); } catch {} }
+            setRoute({ name: 'list' });
           } catch (e) { alert('Error al sincronizar: ' + e.message); }
         } : null}
         onClearData={() => {
@@ -416,9 +422,15 @@ function App() {
         } : null}
         onSync={currentUser ? async () => {
           try {
-            const { count, summary } = await fullSyncFromCloud(currentUser.id);
-            if (count === 0) { alert('La nube no tiene datos para este usuario.'); }
-            else { alert(summary + '\n\nRecargando…'); window.location.reload(); }
+            const { count, data } = await fullSyncFromCloud(currentUser.id);
+            if (count === 0 || !data) { alert('La nube no tiene datos para este usuario.'); return; }
+            if (data[SETS_KEY]) { try { setSets(setsFromJSON(data[SETS_KEY])); } catch {} }
+            if (data[NAME_KEY]) setFilename(data[NAME_KEY]);
+            if (data[RENAMES_KEY]) { try { setRenamesState(JSON.parse(data[RENAMES_KEY])); } catch {} }
+            if (data[ROUTINE_RENAMES_KEY]) { try { setRoutineRenamesState(JSON.parse(data[ROUTINE_RENAMES_KEY])); } catch {} }
+            if (data[FOLDERS_KEY]) { try { setFoldersState(foldersFromRaw(JSON.parse(data[FOLDERS_KEY]))); } catch {} }
+            if (data[ALTERNATES_KEY]) { try { setAlternatesState(JSON.parse(data[ALTERNATES_KEY])); } catch {} }
+            setRoute({ name: 'list' });
           } catch (e) { alert('Error al sincronizar: ' + e.message); }
         } : null}
         onClearAll={async () => {
