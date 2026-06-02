@@ -4,6 +4,7 @@ import Icon from './icons.jsx';
 function TemplateEditScreen({ template, onBack, onSave, onDelete }) {
   const [name, setName] = React.useState(template?.name || '');
   const [slots, setSlots] = React.useState(template?.slots || []);
+  const [slotDescriptions, setSlotDescriptions] = React.useState(template?.slotDescriptions || {});
   const [draft, setDraft] = React.useState('');
   const inputRef = React.useRef(null);
 
@@ -16,13 +17,19 @@ function TemplateEditScreen({ template, onBack, onSave, onDelete }) {
   }
 
   function removeSlot(i) {
+    const removed = slots[i];
     setSlots(s => s.filter((_, idx) => idx !== i));
+    setSlotDescriptions(d => { const next = { ...d }; delete next[removed]; return next; });
+  }
+
+  function setDesc(slot, value) {
+    setSlotDescriptions(d => ({ ...d, [slot]: value }));
   }
 
   function save() {
     const trimmed = name.trim();
     if (!trimmed) { inputRef.current?.focus(); return; }
-    onSave({ name: trimmed, slots });
+    onSave({ name: trimmed, slots, slotDescriptions });
   }
 
   return (
@@ -64,16 +71,24 @@ function TemplateEditScreen({ template, onBack, onSave, onDelete }) {
         )}
 
         {slots.map((slot, i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', borderBottom: '1px solid var(--line)' }}>
-            <div style={{ width: 22, textAlign: 'center', fontSize: 12, color: 'var(--ink-3)', fontWeight: 600, flexShrink: 0 }}>{i + 1}</div>
-            <div style={{ flex: 1, fontSize: 15, fontWeight: 500 }}>{slot}</div>
-            <button
-              onClick={() => removeSlot(i)}
-              style={{ background: 'none', border: 'none', color: 'var(--ink-3)', cursor: 'pointer', padding: 4 }}
-              aria-label="eliminar"
-            >
-              <Icon.Trash size={14} />
-            </button>
+          <div key={i} style={{ padding: '10px 0', borderBottom: '1px solid var(--line)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ width: 22, textAlign: 'center', fontSize: 12, color: 'var(--ink-3)', fontWeight: 600, flexShrink: 0 }}>{i + 1}</div>
+              <div style={{ flex: 1, fontSize: 15, fontWeight: 500 }}>{slot}</div>
+              <button
+                onClick={() => removeSlot(i)}
+                style={{ background: 'none', border: 'none', color: 'var(--ink-3)', cursor: 'pointer', padding: 4 }}
+                aria-label="eliminar"
+              >
+                <Icon.Trash size={14} />
+              </button>
+            </div>
+            <input
+              value={slotDescriptions[slot] || ''}
+              onChange={e => setDesc(slot, e.target.value)}
+              placeholder="Nota del coach (series, carga objetivo…)"
+              style={{ width: '100%', marginTop: 4, paddingLeft: 32, background: 'none', border: 'none', fontSize: 12, color: 'var(--ink-3)', outline: 'none', fontFamily: 'inherit' }}
+            />
           </div>
         ))}
 

@@ -175,10 +175,11 @@ function TemplateProgressScreen({ folder, template, workouts, onBack, onEdit, on
 
       {template.slots.map(slot => {
         const history = slotHistories[slot] || [];
+        const desc = template.slotDescriptions?.[slot];
         return (
           <div key={slot}>
             <div style={{
-              padding: '14px 16px 6px',
+              padding: '14px 16px 2px',
               fontSize: 11,
               fontWeight: 700,
               color: 'var(--ink-2)',
@@ -195,6 +196,11 @@ function TemplateProgressScreen({ folder, template, workouts, onBack, onEdit, on
                 </span>
               )}
             </div>
+            {desc && (
+              <div style={{ padding: '0 16px 6px', fontSize: 12, color: 'var(--ink-3)', fontStyle: 'italic' }}>
+                {desc}
+              </div>
+            )}
 
             {history.length === 0 ? (
               <div style={{ padding: '4px 16px 12px', fontSize: 13, color: 'var(--ink-3)' }}>
