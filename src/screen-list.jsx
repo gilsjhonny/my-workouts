@@ -4,7 +4,7 @@ import { fmtRelative } from './parser.js';
 import { RoutineNamesContext } from './contexts.js';
 import { BottomTabs } from './screen-folders.jsx';
 
-function ListScreen({ workouts, onOpen, onReimport, onLogout, onClearAll }) {
+function ListScreen({ workouts, onOpen, onReimport, onLogout, onClearAll, currentUser }) {
   const routineNames = React.useContext(RoutineNamesContext);
   const [query, setQuery] = React.useState('');
   const [showAll, setShowAll] = React.useState(false);
@@ -49,6 +49,11 @@ function ListScreen({ workouts, onOpen, onReimport, onLogout, onClearAll }) {
             <>
               <div style={{ position: 'fixed', inset: 0, zIndex: 99 }} onClick={() => setMenuOpen(false)} />
               <div style={{ position: 'absolute', right: 0, top: '110%', zIndex: 100, background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 14, boxShadow: 'var(--shadow-md)', minWidth: 180, overflow: 'hidden' }}>
+                {currentUser && (
+                  <div style={{ padding: '10px 16px', fontSize: 12, color: 'var(--ink-3)', borderBottom: '1px solid var(--line)' }}>
+                    {currentUser.email}
+                  </div>
+                )}
                 <button
                   onClick={() => { setMenuOpen(false); setConfirmClear(true); }}
                   style={{ width: '100%', textAlign: 'left', padding: '13px 16px', fontSize: 14, color: 'var(--down)', background: 'none', border: 'none', cursor: 'pointer', borderBottom: '1px solid var(--line)' }}

@@ -397,6 +397,7 @@ function App() {
         workouts={workouts}
         onOpen={(title) => setRoute({ name: 'detail', title })}
         onReimport={onReimport}
+        currentUser={currentUser}
         onLogout={() => { logout(); setStorageUser(null); setCurrentUser(null); }}
         onClearAll={async () => {
           storageDelete(SETS_KEY).catch(() => {});
