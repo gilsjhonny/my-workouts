@@ -319,6 +319,39 @@ function App() {
     if (currentUser) cloudSet(currentUser.id, SETS_KEY, setsToJSON(setsToSave)).catch(e => console.warn('cloudSet sets failed:', e));
   }
 
+  // Push everything from in-memory state (never from possibly-stale IndexedDB)
+  async function pushStateToCloud(uid) {
+    if (sets) await cloudSet(uid, SETS_KEY, setsToJSON(sets));
+    if (filename) await cloudSet(uid, NAME_KEY, filename);
+    await cloudSet(uid, RENAMES_KEY, JSON.stringify(renames));
+    await cloudSet(uid, ROUTINE_RENAMES_KEY, JSON.stringify(routineRenames));
+    await cloudSet(uid, FOLDERS_KEY, JSON.stringify(folders.map(f => ({ ...f, createdAt: f.createdAt.toISOString() }))));
+    await cloudSet(uid, ALTERNATES_KEY, JSON.stringify(alternates));
+  }
+
+  async function doSync() {
+    if (!currentUser) return;
+    try {
+      const { count, data } = await fullSyncFromCloud(currentUser.id);
+      if (count === 0 || !data) { alert('La nube no tiene datos para este usuario.'); return; }
+      let n = 0, latestStr = '—';
+      if (data[SETS_KEY]) {
+        const parsed = setsFromJSON(data[SETS_KEY]);
+        n = parsed.length;
+        const latest = parsed.reduce((m, s) => s.startTime && s.startTime > m ? s.startTime : m, new Date(0));
+        if (latest.getTime() > 0) latestStr = latest.toLocaleDateString('es-ES');
+        setSets(parsed);
+      }
+      if (data[NAME_KEY]) setFilename(data[NAME_KEY]);
+      if (data[RENAMES_KEY]) { try { setRenamesState(JSON.parse(data[RENAMES_KEY])); } catch {} }
+      if (data[ROUTINE_RENAMES_KEY]) { try { setRoutineRenamesState(JSON.parse(data[ROUTINE_RENAMES_KEY])); } catch {} }
+      if (data[FOLDERS_KEY]) { try { setFoldersState(foldersFromRaw(JSON.parse(data[FOLDERS_KEY]))); } catch {} }
+      if (data[ALTERNATES_KEY]) { try { setAlternatesState(JSON.parse(data[ALTERNATES_KEY])); } catch {} }
+      setRoute({ name: 'list' });
+      alert(`Sincronizado: ${n} entrenos. Más reciente: ${latestStr}`);
+    } catch (e) { alert('Error al sincronizar: ' + e.message); }
+  }
+
   function onImport(parsedSets, name) {
     setSets(parsedSets);
     setFilename(name);
@@ -384,28 +417,7 @@ function App() {
         onContinue={() => setRoute({ name: 'list' })}
         currentUser={currentUser}
         onLogout={() => { logout(); setStorageUser(null); setCurrentUser(null); }}
-        onSync={currentUser ? async () => {
-          try {
-            alert('Paso 1: conectando con la nube…');
-            const { count, data } = await fullSyncFromCloud(currentUser.id);
-            alert(`Paso 2: recibidos ${count} registros. Sets: ${data?.[SETS_KEY] ? 'sí' : 'no'}`);
-            if (count === 0 || !data) { alert('La nube no tiene datos.'); return; }
-            if (data[SETS_KEY]) {
-              try {
-                const parsed = setsFromJSON(data[SETS_KEY]);
-                alert(`Paso 3: parseados ${parsed.length} entrenos. Aplicando…`);
-                setSets(parsed);
-              } catch (e) { alert('Error parseando sets: ' + e.message); }
-            }
-            if (data[NAME_KEY]) setFilename(data[NAME_KEY]);
-            if (data[RENAMES_KEY]) { try { setRenamesState(JSON.parse(data[RENAMES_KEY])); } catch {} }
-            if (data[ROUTINE_RENAMES_KEY]) { try { setRoutineRenamesState(JSON.parse(data[ROUTINE_RENAMES_KEY])); } catch {} }
-            if (data[FOLDERS_KEY]) { try { setFoldersState(foldersFromRaw(JSON.parse(data[FOLDERS_KEY]))); } catch {} }
-            if (data[ALTERNATES_KEY]) { try { setAlternatesState(JSON.parse(data[ALTERNATES_KEY])); } catch {} }
-            setRoute({ name: 'list' });
-            alert('Paso 4: ¡listo!');
-          } catch (e) { alert('Error: ' + e.message); }
-        } : null}
+        onSync={currentUser ? doSync : null}
         onClearData={() => {
           storageDelete(SETS_KEY).catch(() => {});
           storageDelete(NAME_KEY).catch(() => {});
@@ -424,33 +436,14 @@ function App() {
         onLogout={() => { logout(); setStorageUser(null); setCurrentUser(null); }}
         onPush={currentUser ? async () => {
           try {
-            if (sets) await cloudSet(currentUser.id, SETS_KEY, setsToJSON(sets));
-            await pushLocalToCloud(currentUser.id);
-            alert('Datos subidos a la nube correctamente.');
+            await pushStateToCloud(currentUser.id);
+            const n = sets?.length || 0;
+            const latest = sets?.reduce((m, s) => s.startTime && s.startTime > m ? s.startTime : m, new Date(0));
+            const latestStr = latest && latest.getTime() > 0 ? latest.toLocaleDateString('es-ES') : '—';
+            alert(`Subido: ${n} entrenos. Más reciente: ${latestStr}`);
           } catch (e) { alert('Error al subir: ' + e.message); }
         } : null}
-        onSync={currentUser ? async () => {
-          try {
-            alert('Paso 1: conectando con la nube…');
-            const { count, data } = await fullSyncFromCloud(currentUser.id);
-            alert(`Paso 2: recibidos ${count} registros. Sets: ${data?.[SETS_KEY] ? 'sí' : 'no'}`);
-            if (count === 0 || !data) { alert('La nube no tiene datos.'); return; }
-            if (data[SETS_KEY]) {
-              try {
-                const parsed = setsFromJSON(data[SETS_KEY]);
-                alert(`Paso 3: parseados ${parsed.length} entrenos. Aplicando…`);
-                setSets(parsed);
-              } catch (e) { alert('Error parseando sets: ' + e.message); }
-            }
-            if (data[NAME_KEY]) setFilename(data[NAME_KEY]);
-            if (data[RENAMES_KEY]) { try { setRenamesState(JSON.parse(data[RENAMES_KEY])); } catch {} }
-            if (data[ROUTINE_RENAMES_KEY]) { try { setRoutineRenamesState(JSON.parse(data[ROUTINE_RENAMES_KEY])); } catch {} }
-            if (data[FOLDERS_KEY]) { try { setFoldersState(foldersFromRaw(JSON.parse(data[FOLDERS_KEY]))); } catch {} }
-            if (data[ALTERNATES_KEY]) { try { setAlternatesState(JSON.parse(data[ALTERNATES_KEY])); } catch {} }
-            setRoute({ name: 'list' });
-            alert('Paso 4: ¡listo!');
-          } catch (e) { alert('Error: ' + e.message); }
-        } : null}
+        onSync={currentUser ? doSync : null}
         onClearAll={async () => {
           storageDelete(SETS_KEY).catch(() => {});
           storageDelete(NAME_KEY).catch(() => {});
