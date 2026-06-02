@@ -381,6 +381,8 @@ function App() {
         onLoadDemo={onLoadDemo}
         hasData={!!sets}
         onContinue={() => setRoute({ name: 'list' })}
+        currentUser={currentUser}
+        onLogout={() => { logout(); setStorageUser(null); setCurrentUser(null); }}
         onClearData={() => {
           storageDelete(SETS_KEY).catch(() => {});
           storageDelete(NAME_KEY).catch(() => {});

@@ -2,11 +2,12 @@ import React from 'react';
 import { parseCSV } from './parser.js';
 import Icon from './icons.jsx';
 
-function ImportScreen({ onImport, onMerge, onLoadDemo, hasData, onContinue, onClearData }) {
+function ImportScreen({ onImport, onMerge, onLoadDemo, hasData, onContinue, onClearData, onLogout, currentUser }) {
   const [dragOver, setDragOver] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState(null);
   const [mode, setMode] = React.useState(hasData ? 'merge' : 'replace');
+  const [menuOpen, setMenuOpen] = React.useState(false);
   const fileRef = React.useRef(null);
 
   function handleFile(file) {
@@ -47,7 +48,27 @@ function ImportScreen({ onImport, onMerge, onLoadDemo, hasData, onContinue, onCl
       <div className="topbar">
         <div style={{ width: 40 }} />
         <div className="title">Mis Entrenos</div>
-        <button className="iconbtn" aria-label="más"><Icon.Dots /></button>
+        <div style={{ position: 'relative' }}>
+          <button className="iconbtn" aria-label="más" onClick={() => setMenuOpen(o => !o)}><Icon.Dots /></button>
+          {menuOpen && (
+            <div
+              style={{ position: 'absolute', right: 0, top: '110%', background: 'var(--surface)', border: '1px solid var(--line-2)', borderRadius: 14, padding: '6px 0', minWidth: 180, boxShadow: 'var(--shadow-md)', zIndex: 100 }}
+              onMouseLeave={() => setMenuOpen(false)}
+            >
+              {currentUser && (
+                <div style={{ padding: '6px 14px 8px', fontSize: 12, color: 'var(--ink-3)', borderBottom: '1px solid var(--line)', marginBottom: 4 }}>
+                  {currentUser.email}
+                </div>
+              )}
+              <button
+                onClick={() => { setMenuOpen(false); onLogout?.(); }}
+                style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 14px', background: 'none', border: 'none', fontSize: 14, color: 'var(--down)', cursor: 'pointer' }}
+              >
+                Cerrar sesión
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="import-shell">
