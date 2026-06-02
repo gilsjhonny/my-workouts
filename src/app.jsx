@@ -27,6 +27,7 @@ const ACCENT_PRESETS = {
   lavender:{ accent: '#cdc1f9', soft: '#e6dffa', label: 'Lavender' },
 };
 
+const APP_VERSION = 'build-8-nostore';
 const SETS_KEY = 'workout_tracker_sets_v2';
 const STORAGE_KEY = 'workout_tracker_csv_v1';
 const NAME_KEY = 'workout_tracker_filename_v1';
@@ -348,7 +349,7 @@ function App() {
       if (data[FOLDERS_KEY]) { try { setFoldersState(foldersFromRaw(JSON.parse(data[FOLDERS_KEY]))); } catch {} }
       if (data[ALTERNATES_KEY]) { try { setAlternatesState(JSON.parse(data[ALTERNATES_KEY])); } catch {} }
       setRoute({ name: 'list' });
-      alert(`Usuario: ${currentUser.email}\nID: ${currentUser.id}\n\nSincronizado: ${n} entrenos. Más reciente: ${latestStr}`);
+      alert(`Versión: ${APP_VERSION}\nUsuario: ${currentUser.email}\n\nSincronizado: ${n} entrenos. Más reciente: ${latestStr}`);
     } catch (e) { alert('Error al sincronizar: ' + e.message); }
   }
 
