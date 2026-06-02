@@ -72,3 +72,19 @@ export async function cloudGetAll(uid) {
   if (!data) return {};
   return Object.fromEntries(data.map(r => [r.key, r.value]));
 }
+
+// Returns per-key metadata (updated_at + value length) straight from the DB,
+// for diagnosing cross-device sync mismatches.
+export async function cloudDiagnostic(uid) {
+  const host = (import.meta.env.VITE_SUPABASE_URL || '').replace(/^https?:\/\//, '').split('.')[0];
+  const { data, error } = await supabase
+    .from('user_data')
+    .select('key, value, updated_at')
+    .eq('user_id', uid)
+    .eq('key', 'workout_tracker_sets_v2')
+    .maybeSingle();
+  if (error) return `host=${host} ERROR: ${error.message}`;
+  if (!data) return `host=${host} sin fila de sets`;
+  const kb = Math.round((data.value?.length || 0) / 1024);
+  return `host=${host}\nupdated_at=${data.updated_at}\nvalue=${kb} KB`;
+}

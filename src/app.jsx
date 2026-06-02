@@ -2,7 +2,7 @@ import React from 'react';
 import { parseCSV, buildModel, mergeSets } from './parser.js';
 import { ExerciseNamesContext, RoutineNamesContext, ExerciseAlternatesContext } from './contexts.js';
 import { storageGet, storageSet, storageDelete, setStorageUser, pushLocalToCloud, fullSyncFromCloud } from './storage.js';
-import { listenAuth, logout, cloudSet, cloudGetAll, cloudDeleteAll } from './supabase.js';
+import { listenAuth, logout, cloudSet, cloudGetAll, cloudDeleteAll, cloudDiagnostic } from './supabase.js';
 import { useTweaks, TweaksPanel, TweakSection, TweakColor, TweakRadio } from './tweaks-panel.jsx';
 import AuthScreen from './screen-auth.jsx';
 import ImportScreen from './screen-import.jsx';
@@ -27,7 +27,7 @@ const ACCENT_PRESETS = {
   lavender:{ accent: '#cdc1f9', soft: '#e6dffa', label: 'Lavender' },
 };
 
-const APP_VERSION = 'build-8-nostore';
+const APP_VERSION = 'build-9-diag';
 const SETS_KEY = 'workout_tracker_sets_v2';
 const STORAGE_KEY = 'workout_tracker_csv_v1';
 const NAME_KEY = 'workout_tracker_filename_v1';
@@ -349,7 +349,8 @@ function App() {
       if (data[FOLDERS_KEY]) { try { setFoldersState(foldersFromRaw(JSON.parse(data[FOLDERS_KEY]))); } catch {} }
       if (data[ALTERNATES_KEY]) { try { setAlternatesState(JSON.parse(data[ALTERNATES_KEY])); } catch {} }
       setRoute({ name: 'list' });
-      alert(`Versión: ${APP_VERSION}\nUsuario: ${currentUser.email}\n\nSincronizado: ${n} entrenos. Más reciente: ${latestStr}`);
+      const diag = await cloudDiagnostic(currentUser.id).catch(e => 'diag err: ' + e.message);
+      alert(`Versión: ${APP_VERSION}\nUsuario: ${currentUser.email}\n\nSincronizado: ${n} entrenos. Más reciente: ${latestStr}\n\n--- DB directo ---\n${diag}`);
     } catch (e) { alert('Error al sincronizar: ' + e.message); }
   }
 
