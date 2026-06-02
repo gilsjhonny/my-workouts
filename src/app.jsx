@@ -473,6 +473,7 @@ function App() {
         workouts={workouts}
         onBack={() => setRoute({ name: 'folder-detail', id: route.folderId })}
         onEdit={() => setRoute({ name: 'template-edit', folderId: route.folderId, templateId: route.templateId })}
+        onAddSession={(sessionKey, routineTitle) => setRoute({ name: 'slot-mapping', folderId: route.folderId, sessionKey, routineTitle, from: { name: 'template-progress', folderId: route.folderId, templateId: route.templateId } })}
       />
     );
   } else if (route.name === 'template-edit') {

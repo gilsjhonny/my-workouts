@@ -1,5 +1,7 @@
 import React from 'react';
 import Icon from './icons.jsx';
+import { fmtRelative } from './parser.js';
+import { RoutineNamesContext } from './contexts.js';
 import { FullHistoryGrid } from './screen-exercise.jsx';
 import { topSetOf } from './screen-detail.jsx';
 
@@ -36,21 +38,105 @@ function buildSlotHistories(template, folder, workouts) {
   return histories;
 }
 
-function TemplateProgressScreen({ folder, template, workouts, onBack, onEdit }) {
+function SessionPicker({ workouts, assignedKeys, filteredTitles, onSelect, onCancel }) {
+  const routineNames = React.useContext(RoutineNamesContext);
+  const isFiltered = filteredTitles.size > 0;
+
+  const available = React.useMemo(() => {
+    const source = isFiltered
+      ? workouts.filter(w => filteredTitles.has(w.title))
+      : workouts;
+    return source
+      .flatMap(w => w.sessions
+        .filter(s => !assignedKeys.has(s.key))
+        .map(s => ({ session: s, routineTitle: w.title }))
+      )
+      .sort((a, b) => b.session.startTime - a.session.startTime);
+  }, [workouts, assignedKeys, filteredTitles]);
+
+  return (
+    <div className="app-frame">
+      <div className="topbar">
+        <button className="iconbtn" onClick={onCancel} aria-label="cancelar"><Icon.Back /></button>
+        <div className="title">Añadir sesión</div>
+        <div style={{ width: 40 }} />
+      </div>
+      <div className="page-head">
+        <div className="eyebrow">Sesiones</div>
+        <h1>{isFiltered ? 'Mismo tipo' : 'Todas'}</h1>
+        {isFiltered && (
+          <div className="sub">
+            Mostrando solo sesiones de {[...filteredTitles].map(t => routineNames.get(t)).join(', ')}.
+          </div>
+        )}
+      </div>
+      <div className="list">
+        {available.length === 0 && (
+          <div className="empty" style={{ paddingTop: 32 }}>
+            <div style={{ fontWeight: 600, marginBottom: 4 }}>Sin sesiones nuevas</div>
+            <div style={{ fontSize: 13 }}>Todas las sesiones de este tipo ya están asignadas.</div>
+          </div>
+        )}
+        {available.map(({ session, routineTitle }) => (
+          <button
+            key={session.key}
+            className="workout-row fade-in"
+            onClick={() => onSelect(session.key, routineTitle)}
+          >
+            <div className="main">
+              <div className="name">{routineNames.get(routineTitle)}</div>
+              <div className="meta">
+                <span>{fmtRelative(session.startTime)}</span>
+                <span className="dot" />
+                <span>{session.exercises.length} ej</span>
+              </div>
+            </div>
+            <span className="chev"><Icon.Chevron /></span>
+          </button>
+        ))}
+        <div className="safe-bottom" />
+      </div>
+    </div>
+  );
+}
+
+function TemplateProgressScreen({ folder, template, workouts, onBack, onEdit, onAddSession }) {
+  const [picking, setPicking] = React.useState(false);
+
   const slotHistories = React.useMemo(
     () => buildSlotHistories(template, folder, workouts),
     [template, folder, workouts]
   );
 
-  const totalSessions = Object.keys(
-    Object.fromEntries(
-      Object.values(folder.assignments || {})
-        .filter(a => a.templateId === template.id)
-        .map(a => [Object.keys(a.mapping)[0], true])
-    )
-  ).length;
-
   const assignedCount = Object.values(folder.assignments || {}).filter(a => a.templateId === template.id).length;
+
+  const { assignedKeys, filteredTitles } = React.useMemo(() => {
+    const keys = new Set();
+    const titles = new Set();
+    Object.entries(folder.assignments || {}).forEach(([sessionKey, { templateId }]) => {
+      if (templateId !== template.id) return;
+      keys.add(sessionKey);
+      for (const w of workouts) {
+        if (w.sessions.some(s => s.key === sessionKey)) { titles.add(w.title); break; }
+      }
+    });
+    return { assignedKeys: keys, filteredTitles: titles };
+  }, [folder.assignments, template.id, workouts]);
+
+  if (picking) {
+    return (
+      <SessionPicker
+        workouts={workouts}
+        assignedKeys={assignedKeys}
+        filteredTitles={filteredTitles}
+        onCancel={() => setPicking(false)}
+        onSelect={(sessionKey, routineTitle) => {
+          setPicking(false);
+          onAddSession(sessionKey, routineTitle);
+        }}
+      />
+    );
+  }
 
   return (
     <div className="app-frame">
@@ -70,10 +156,20 @@ function TemplateProgressScreen({ folder, template, workouts, onBack, onEdit }) 
         </div>
       </div>
 
+      <div style={{ padding: '0 16px 12px' }}>
+        <button
+          className="folder-create-btn"
+          onClick={() => setPicking(true)}
+        >
+          <Icon.Plus size={16} />
+          <span>Añadir sesión</span>
+        </button>
+      </div>
+
       {assignedCount === 0 && (
-        <div className="empty" style={{ paddingTop: 40 }}>
+        <div className="empty" style={{ paddingTop: 16 }}>
           <div style={{ fontWeight: 600, marginBottom: 4 }}>Sin sesiones asignadas</div>
-          <div style={{ fontSize: 13 }}>Abre una sesión desde este programa y usa "Asignar a día".</div>
+          <div style={{ fontSize: 13 }}>Añade una sesión para ver el progreso aquí.</div>
         </div>
       )}
 
