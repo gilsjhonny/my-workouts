@@ -66,14 +66,23 @@ const LS_KEYS = [
 
 export async function fullSyncFromCloud(uid) {
   const all = await cloudGetAll(uid);
-  const count = Object.keys(all).length;
-  if (count === 0) return 0;
+  const keys = Object.keys(all);
+  if (keys.length === 0) return 0;
   const db = await getDB();
   const tx = db.transaction(STORE, 'readwrite');
-  await Promise.all(Object.entries(all).map(([k, v]) => tx.store.put(v, k)));
+  await Promise.all(Object.entries(all).map(([k, v]) => {
+    // If Supabase returned a parsed object instead of a string, re-stringify it
+    const stored = typeof v === 'string' ? v : JSON.stringify(v);
+    return tx.store.put(stored, k);
+  }));
   await tx.done;
-  LS_KEYS.forEach(k => { if (all[k]) localStorage.setItem(k, all[k]); });
-  return count;
+  LS_KEYS.forEach(k => {
+    if (all[k] != null) {
+      const stored = typeof all[k] === 'string' ? all[k] : JSON.stringify(all[k]);
+      localStorage.setItem(k, stored);
+    }
+  });
+  return keys.length;
 }
 
 export async function pushLocalToCloud(uid) {
