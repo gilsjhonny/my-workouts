@@ -38,7 +38,7 @@ function buildSlotHistories(template, folder, workouts) {
   return histories;
 }
 
-function SessionPicker({ workouts, assignedKeys, filteredTitles, templateName, onSelect, onCancel }) {
+function SessionPicker({ workouts, assignedKeys, filteredTitles, templateName, onSelect, onOpenSession, onCancel }) {
   const routineNames = React.useContext(RoutineNamesContext);
   const isFiltered = filteredTitles.size > 0;
 
@@ -78,21 +78,26 @@ function SessionPicker({ workouts, assignedKeys, filteredTitles, templateName, o
           </div>
         )}
         {available.map(({ session, routineTitle }) => (
-          <button
-            key={session.key}
-            className="workout-row fade-in"
-            onClick={() => onSelect(session.key, routineTitle)}
-          >
-            <div className="main">
-              <div className="name">{routineNames.get(routineTitle)}</div>
-              <div className="meta">
-                <span>{fmtRelative(session.startTime)}</span>
-                <span className="dot" />
-                <span>{session.exercises.length} ej</span>
+          <div key={session.key} className="workout-row fade-in" style={{ display: 'flex', alignItems: 'center', cursor: 'default' }}>
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', minWidth: 0 }} onClick={() => onSelect(session.key, routineTitle)}>
+              <div className="main">
+                <div className="name">{routineNames.get(routineTitle)}</div>
+                <div className="meta">
+                  <span>{fmtRelative(session.startTime)}</span>
+                  <span className="dot" />
+                  <span>{session.exercises.length} ej</span>
+                </div>
               </div>
             </div>
-            <span className="chev"><Icon.Chevron /></span>
-          </button>
+            <button
+              className="iconbtn"
+              onClick={() => onOpenSession(session.key, routineTitle)}
+              aria-label="editar sesión"
+              style={{ flexShrink: 0 }}
+            >
+              <Icon.Pencil size={14} />
+            </button>
+          </div>
         ))}
         <div className="safe-bottom" />
       </div>
@@ -100,8 +105,8 @@ function SessionPicker({ workouts, assignedKeys, filteredTitles, templateName, o
   );
 }
 
-function TemplateProgressScreen({ folder, template, workouts, onBack, onEdit, onAddSession }) {
-  const [picking, setPicking] = React.useState(false);
+function TemplateProgressScreen({ folder, template, workouts, onBack, onEdit, onAddSession, onOpenSession, openPicker }) {
+  const [picking, setPicking] = React.useState(openPicker || false);
 
   const slotHistories = React.useMemo(
     () => buildSlotHistories(template, folder, workouts),
@@ -131,6 +136,7 @@ function TemplateProgressScreen({ folder, template, workouts, onBack, onEdit, on
         filteredTitles={filteredTitles}
         templateName={template.name}
         onCancel={() => setPicking(false)}
+        onOpenSession={onOpenSession}
         onSelect={(sessionKey, routineTitle) => {
           setPicking(false);
           onAddSession(sessionKey, routineTitle);

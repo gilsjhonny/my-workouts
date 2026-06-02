@@ -471,9 +471,11 @@ function App() {
         folder={folder}
         template={template}
         workouts={workouts}
+        openPicker={route.openPicker || false}
         onBack={() => setRoute({ name: 'folder-detail', id: route.folderId })}
         onEdit={() => setRoute({ name: 'template-edit', folderId: route.folderId, templateId: route.templateId })}
         onAddSession={(sessionKey, routineTitle) => setRoute({ name: 'slot-mapping', folderId: route.folderId, sessionKey, routineTitle, from: { name: 'template-progress', folderId: route.folderId, templateId: route.templateId } })}
+        onOpenSession={(sessionKey, routineTitle) => setRoute({ name: 'detail', title: routineTitle, from: { name: 'template-progress', folderId: route.folderId, templateId: route.templateId, openPicker: true } })}
       />
     );
   } else if (route.name === 'template-edit') {
