@@ -692,8 +692,7 @@ button { cursor: pointer; border: 0; background: transparent; }
   padding: 2px 5px;
   width: 100%;
 }
-.setmini.warmup .main, .setmini.warmup .rir { color: var(--ink-3); }
-.setmini .flag.warm { background: rgba(240,199,94,0.2); color: var(--ink-2); border: 1px solid rgba(240,199,94,0.5); }
+.setmini.warmup .main, .setmini.warmup .rir { color: rgba(180, 140, 20, 0.85); }
 .setmini .flags {
   display: flex;
   flex-wrap: wrap;
