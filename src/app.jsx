@@ -348,7 +348,7 @@ function App() {
       if (data[FOLDERS_KEY]) { try { setFoldersState(foldersFromRaw(JSON.parse(data[FOLDERS_KEY]))); } catch {} }
       if (data[ALTERNATES_KEY]) { try { setAlternatesState(JSON.parse(data[ALTERNATES_KEY])); } catch {} }
       setRoute({ name: 'list' });
-      alert(`Sincronizado: ${n} entrenos. Más reciente: ${latestStr}`);
+      alert(`Usuario: ${currentUser.email}\nID: ${currentUser.id}\n\nSincronizado: ${n} entrenos. Más reciente: ${latestStr}`);
     } catch (e) { alert('Error al sincronizar: ' + e.message); }
   }
 
@@ -448,7 +448,7 @@ function App() {
               const lt = back.reduce((m, s) => s.startTime && s.startTime > m ? s.startTime : m, new Date(0));
               if (lt.getTime() > 0) cloudLatest = lt.toLocaleDateString('es-ES');
             }
-            alert(`Enviado: ${localN} entrenos (${payloadKB} KB)\nVerificado en nube: ${cloudN} entrenos, más reciente ${cloudLatest}`);
+            alert(`Usuario: ${currentUser.email}\nID: ${currentUser.id}\n\nEnviado: ${localN} entrenos (${payloadKB} KB)\nVerificado en nube: ${cloudN} entrenos, más reciente ${cloudLatest}`);
           } catch (e) { alert('Error al subir: ' + e.message); }
         } : null}
         onSync={currentUser ? doSync : null}
