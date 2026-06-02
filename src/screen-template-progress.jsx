@@ -61,7 +61,7 @@ function TemplateProgressScreen({ folder, template, workouts, onBack, onEdit }) 
       </div>
 
       <div className="detail-hero fade-in">
-        <div className="eyebrow">Plantilla</div>
+        <div className="eyebrow">Día</div>
         <h1>{template.name}</h1>
         <div className="when">
           <span>{template.slots.length} ejercicio{template.slots.length === 1 ? '' : 's'}</span>
@@ -73,7 +73,7 @@ function TemplateProgressScreen({ folder, template, workouts, onBack, onEdit }) 
       {assignedCount === 0 && (
         <div className="empty" style={{ paddingTop: 40 }}>
           <div style={{ fontWeight: 600, marginBottom: 4 }}>Sin sesiones asignadas</div>
-          <div style={{ fontSize: 13 }}>Abre una sesión desde esta carpeta y usa "Asignar a plantilla".</div>
+          <div style={{ fontSize: 13 }}>Abre una sesión desde este programa y usa "Asignar a día".</div>
         </div>
       )}
 

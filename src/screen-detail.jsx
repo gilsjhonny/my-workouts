@@ -62,7 +62,7 @@ function DetailScreen({ workout, workouts, onBack, onOpenExercise, tweaks, onAss
       </div>
 
       <div className="detail-hero fade-in">
-        <div className="eyebrow">Rutina</div>
+        <div className="eyebrow">Sesión</div>
         {editingTitle ? (
           <div className="routine-title-edit">
             <input
@@ -161,7 +161,7 @@ function DetailScreen({ workout, workouts, onBack, onOpenExercise, tweaks, onAss
             onClick={() => onAssign(session.key)}
             style={{ width: '100%', padding: '10px 14px', borderRadius: 12, border: '1px dashed var(--line)', background: 'var(--surface-2)', fontSize: 13, fontWeight: 600, color: 'var(--ink-2)', cursor: 'pointer', textAlign: 'left' }}
           >
-            Asignar a plantilla →
+            Asignar a día →
           </button>
         </div>
       )}

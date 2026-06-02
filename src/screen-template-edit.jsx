@@ -29,7 +29,7 @@ function TemplateEditScreen({ template, onBack, onSave, onDelete }) {
     <div className="app-frame">
       <div className="topbar">
         <button className="iconbtn" onClick={onBack} aria-label="volver"><Icon.Back /></button>
-        <div className="title">{template ? 'Editar plantilla' : 'Nueva plantilla'}</div>
+        <div className="title">{template ? 'Editar día' : 'Nuevo día'}</div>
         <button
           className="iconbtn"
           onClick={save}
@@ -41,7 +41,7 @@ function TemplateEditScreen({ template, onBack, onSave, onDelete }) {
       </div>
 
       <div className="page-head">
-        <div className="eyebrow">Plantilla</div>
+        <div className="eyebrow">Día</div>
         <input
           className="folder-name-input"
           value={name}
@@ -99,11 +99,11 @@ function TemplateEditScreen({ template, onBack, onSave, onDelete }) {
         <div style={{ padding: '28px 16px 0' }}>
           <button
             onClick={() => {
-              if (confirm(`¿Eliminar la plantilla "${template.name}"?`)) onDelete();
+              if (confirm(`¿Eliminar el día "${template.name}"?`)) onDelete();
             }}
             style={{ fontSize: 13, color: 'var(--down)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
           >
-            Eliminar plantilla
+            Eliminar día
           </button>
         </div>
       )}

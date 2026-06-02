@@ -22,7 +22,7 @@ function FolderListScreen({ folders, onOpen, onCreate, onReimport }) {
   }
 
   return (
-    <div className="app-frame" data-screen-label="04 Lista de carpetas">
+    <div className="app-frame" data-screen-label="04 Lista de programas">
       <div className="topbar">
         <button className="iconbtn" onClick={onReimport} aria-label="reimportar"><Icon.File size={16} /></button>
         <div className="title">Mis Entrenos</div>
@@ -30,7 +30,7 @@ function FolderListScreen({ folders, onOpen, onCreate, onReimport }) {
       </div>
 
       <div className="page-head">
-        <div className="eyebrow">Carpetas</div>
+        <div className="eyebrow">Programas</div>
       </div>
 
       <div className="list">
@@ -46,7 +46,7 @@ function FolderListScreen({ folders, onOpen, onCreate, onReimport }) {
                 if (e.key === 'Enter') { e.preventDefault(); submit(); }
                 if (e.key === 'Escape') { e.preventDefault(); setCreating(false); setDraft(''); }
               }}
-              placeholder="Nombre de la carpeta"
+              placeholder="Nombre del programa"
             />
           </div>
         )}
@@ -54,14 +54,14 @@ function FolderListScreen({ folders, onOpen, onCreate, onReimport }) {
         {!creating && (
           <button className="folder-create-btn" onClick={() => { setDraft(''); setCreating(true); }}>
             <Icon.FolderPlus size={18} />
-            <span>Nueva carpeta</span>
+            <span>Nuevo programa</span>
           </button>
         )}
 
         {folders.length === 0 && !creating && (
           <div className="empty" style={{ paddingTop: 32 }}>
-            <div style={{ fontWeight: 600, marginBottom: 4 }}>Todavía no hay carpetas</div>
-            <div style={{ fontSize: 13 }}>Crea una para agrupar rutinas (por mesociclo, fase, mes…).</div>
+            <div style={{ fontWeight: 600, marginBottom: 4 }}>Todavía no hay programas</div>
+            <div style={{ fontSize: 13 }}>Crea uno para agrupar días de entreno (por mesociclo, fase, mes…).</div>
           </div>
         )}
 
@@ -78,7 +78,7 @@ function FolderListScreen({ folders, onOpen, onCreate, onReimport }) {
             <div className="main">
               <div className="name">{f.name}</div>
               <div className="meta">
-                <span>{f.routineTitles.length} rutina{f.routineTitles.length === 1 ? '' : 's'}</span>
+                <span>{f.routineTitles.length} sesión{f.routineTitles.length === 1 ? '' : 'es'}</span>
                 <span className="dot" />
                 <span>{fmtRelative(f.createdAt)}</span>
               </div>
@@ -141,15 +141,15 @@ function FolderDetailScreen({ folder, workouts, onBack, onOpenRoutine, onRename,
   }
 
   return (
-    <div className="app-frame" data-screen-label="05 Detalle de carpeta">
+    <div className="app-frame" data-screen-label="05 Detalle de programa">
       <div className="topbar">
         <button className="iconbtn" onClick={onBack} aria-label="volver"><Icon.Back /></button>
-        <div className="title">Carpeta</div>
+        <div className="title">Programa</div>
         <button
           className="iconbtn"
           aria-label="eliminar"
           onClick={() => {
-            if (confirm(`¿Eliminar la carpeta "${folder.name}"? Las rutinas seguirán intactas.`)) onDelete();
+            if (confirm(`¿Eliminar el programa "${folder.name}"? Las sesiones seguirán intactas.`)) onDelete();
           }}
         >
           <Icon.Trash size={16} />
@@ -157,7 +157,7 @@ function FolderDetailScreen({ folder, workouts, onBack, onOpenRoutine, onRename,
       </div>
 
       <div className="detail-hero fade-in">
-        <div className="eyebrow">Carpeta</div>
+        <div className="eyebrow">Programa</div>
         {editingName ? (
           <input
             ref={nameRef}
@@ -177,7 +177,7 @@ function FolderDetailScreen({ folder, workouts, onBack, onOpenRoutine, onRename,
           </h1>
         )}
         <div className="when">
-          <span>{inFolder.length} rutina{inFolder.length === 1 ? '' : 's'}</span>
+          <span>{inFolder.length} sesión{inFolder.length === 1 ? '' : 'es'}</span>
         </div>
       </div>
 
@@ -204,13 +204,13 @@ function FolderDetailScreen({ folder, workouts, onBack, onOpenRoutine, onRename,
       <div className="list">
         <button className="folder-create-btn" onClick={() => setPicking(true)}>
           <Icon.Plus size={18} />
-          <span>{folder.routineTitles.length === 0 ? 'Añadir rutinas' : 'Editar rutinas'}</span>
+          <span>{folder.routineTitles.length === 0 ? 'Añadir sesiones' : 'Editar sesiones'}</span>
         </button>
 
         {folder.routineTitles.length === 0 && (
           <div className="empty" style={{ paddingTop: 32 }}>
-            <div style={{ fontWeight: 600, marginBottom: 4 }}>Carpeta vacía</div>
-            <div style={{ fontSize: 13 }}>Añade rutinas para verlas aquí.</div>
+            <div style={{ fontWeight: 600, marginBottom: 4 }}>Programa vacío</div>
+            <div style={{ fontSize: 13 }}>Añade sesiones para verlas aquí.</div>
           </div>
         )}
 
@@ -242,7 +242,7 @@ function FolderDetailScreen({ folder, workouts, onBack, onOpenRoutine, onRename,
         <div style={{ height: 1, background: 'var(--line)', margin: '8px 16px' }} />
 
         <div style={{ padding: '8px 16px 4px', fontSize: 11, fontWeight: 600, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-          Plantillas
+          Días
         </div>
 
         {(folder.templates || []).map(t => (
@@ -264,7 +264,7 @@ function FolderDetailScreen({ folder, workouts, onBack, onOpenRoutine, onRename,
 
         <button className="folder-create-btn" onClick={() => onEditTemplate?.(null)}>
           <Icon.Plus size={16} />
-          <span>Nueva plantilla</span>
+          <span>Nuevo día</span>
         </button>
 
         <div className="safe-bottom" />
@@ -294,7 +294,7 @@ function RoutinePicker({ workouts, initialSelected, folderName, onCancel, onConf
   }
 
   return (
-    <div className="app-frame" data-screen-label="06 Selector de rutinas">
+    <div className="app-frame" data-screen-label="06 Selector de sesiones">
       <div className="topbar">
         <button className="iconbtn" onClick={onCancel} aria-label="cancelar"><Icon.Back /></button>
         <div className="title">{folderName}</div>
@@ -306,13 +306,13 @@ function RoutinePicker({ workouts, initialSelected, folderName, onCancel, onConf
       <div className="page-head">
         <div className="eyebrow">Selector</div>
         <h1>{selected.size} seleccionada{selected.size === 1 ? '' : 's'}</h1>
-        <div className="sub">Marca las rutinas que quieres incluir en esta carpeta.</div>
+        <div className="sub">Marca las sesiones que quieres incluir en este programa.</div>
       </div>
 
       <div className="search">
         <Icon.Search />
         <input
-          placeholder="Buscar rutinas…"
+          placeholder="Buscar sesiones…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
@@ -363,11 +363,11 @@ export function BottomTabs({ active, onChange }) {
     <nav className="tabbar">
       <button className={'tab' + (active === 'routines' ? ' active' : '')} onClick={() => switchTo('routines')}>
         <Icon.Home size={20} />
-        <span>Rutinas</span>
+        <span>Historial</span>
       </button>
       <button className={'tab' + (active === 'folders' ? ' active' : '')} onClick={() => switchTo('folders')}>
         <Icon.Folder size={20} />
-        <span>Carpetas</span>
+        <span>Programas</span>
       </button>
     </nav>
   );

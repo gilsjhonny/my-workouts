@@ -125,14 +125,14 @@ function SlotMappingScreen({ folder, session, onBack, onConfirm }) {
       )}
 
       <div className="page-head">
-        <div className="eyebrow">Plantilla</div>
+        <div className="eyebrow">Día</div>
         <h1>{template?.name || '—'}</h1>
         <div className="sub">Asigna cada ejercicio del coach al que hiciste en esta sesión.</div>
       </div>
 
       {!template && (
         <div className="empty">
-          <div style={{ fontSize: 13 }}>Esta carpeta no tiene plantillas aún.</div>
+          <div style={{ fontSize: 13 }}>Este programa no tiene días aún.</div>
         </div>
       )}
 
