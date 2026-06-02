@@ -57,10 +57,11 @@ export async function cloudDeleteAll(uid) {
 }
 
 export async function cloudGetAll(uid) {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('user_data')
     .select('key, value')
     .eq('user_id', uid);
+  if (error) throw new Error(error.message);
   if (!data) return {};
   return Object.fromEntries(data.map(r => [r.key, r.value]));
 }
