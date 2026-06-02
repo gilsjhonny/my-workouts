@@ -10,6 +10,7 @@ function ListScreen({ workouts, onOpen, onReimport, onLogout, onSync, onPush, on
   const [showAll, setShowAll] = React.useState(false);
   const [menuOpen, setMenuOpen] = React.useState(false);
   const [confirmClear, setConfirmClear] = React.useState(false);
+  const [syncing, setSyncing] = React.useState(false);
 
   // Flat list of all sessions sorted by most recent
   const allSessions = React.useMemo(() => {
@@ -64,10 +65,11 @@ function ListScreen({ workouts, onOpen, onReimport, onLogout, onSync, onPush, on
                 )}
                 {onSync && (
                   <button
-                    onClick={async () => { setMenuOpen(false); await onSync(); }}
+                    disabled={syncing}
+                    onClick={async () => { setMenuOpen(false); setSyncing(true); await onSync(); setSyncing(false); }}
                     style={{ width: '100%', textAlign: 'left', padding: '13px 16px', fontSize: 14, color: 'var(--ink-2)', background: 'none', border: 'none', cursor: 'pointer', borderBottom: '1px solid var(--line)' }}
                   >
-                    Sincronizar desde la nube
+                    {syncing ? 'Sincronizando…' : 'Sincronizar desde la nube'}
                   </button>
                 )}
                 <button
