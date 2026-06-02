@@ -86,13 +86,13 @@ export async function fullSyncFromCloud(uid) {
 }
 
 export async function pushLocalToCloud(uid) {
+  const errors = [];
   const db = await getDB();
   const keys = await db.getAllKeys(STORE);
   await Promise.all(keys.map(async k => {
     const v = await db.get(STORE, k);
-    if (v !== undefined) await cloudSet(uid, k, v);
+    if (v !== undefined) await cloudSet(uid, k, v).catch(e => errors.push(e.message));
   }));
-  // Also push localStorage keys (renames, folders)
   const lsKeys = [
     'workout_exercise_renames_v1',
     'workout_routine_renames_v1',
@@ -101,6 +101,7 @@ export async function pushLocalToCloud(uid) {
   ];
   await Promise.all(lsKeys.map(async k => {
     const v = localStorage.getItem(k);
-    if (v) await cloudSet(uid, k, v);
+    if (v) await cloudSet(uid, k, v).catch(e => errors.push(e.message));
   }));
+  if (errors.length) throw new Error(errors.join('\n'));
 }
