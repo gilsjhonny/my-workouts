@@ -38,7 +38,7 @@ function buildSlotHistories(template, folder, workouts) {
   return histories;
 }
 
-function SessionPicker({ workouts, assignedKeys, filteredTitles, onSelect, onCancel }) {
+function SessionPicker({ workouts, assignedKeys, filteredTitles, templateName, onSelect, onCancel }) {
   const routineNames = React.useContext(RoutineNamesContext);
   const isFiltered = filteredTitles.size > 0;
 
@@ -62,8 +62,8 @@ function SessionPicker({ workouts, assignedKeys, filteredTitles, onSelect, onCan
         <div style={{ width: 40 }} />
       </div>
       <div className="page-head">
-        <div className="eyebrow">Sesiones</div>
-        <h1>{isFiltered ? 'Mismo tipo' : 'Todas'}</h1>
+        <div className="eyebrow">Añadir a · {templateName}</div>
+        <h1>{isFiltered ? 'Mismo tipo' : 'Todas las sesiones'}</h1>
         {isFiltered && (
           <div className="sub">
             Mostrando solo sesiones de {[...filteredTitles].map(t => routineNames.get(t)).join(', ')}.
@@ -129,6 +129,7 @@ function TemplateProgressScreen({ folder, template, workouts, onBack, onEdit, on
         workouts={workouts}
         assignedKeys={assignedKeys}
         filteredTitles={filteredTitles}
+        templateName={template.name}
         onCancel={() => setPicking(false)}
         onSelect={(sessionKey, routineTitle) => {
           setPicking(false);
