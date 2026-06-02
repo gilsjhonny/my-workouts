@@ -4,13 +4,12 @@ import { fmtRelative } from './parser.js';
 import { RoutineNamesContext } from './contexts.js';
 import { BottomTabs } from './screen-folders.jsx';
 
-function ListScreen({ workouts, onOpen, onReimport, onLogout, onSync, onPush, onClearAll, currentUser }) {
+function ListScreen({ workouts, onOpen, onReimport, onLogout, onClearAll, currentUser }) {
   const routineNames = React.useContext(RoutineNamesContext);
   const [query, setQuery] = React.useState('');
   const [showAll, setShowAll] = React.useState(false);
   const [menuOpen, setMenuOpen] = React.useState(false);
   const [confirmClear, setConfirmClear] = React.useState(false);
-  const [syncing, setSyncing] = React.useState(false);
 
   // Flat list of all sessions sorted by most recent
   const allSessions = React.useMemo(() => {
@@ -54,23 +53,6 @@ function ListScreen({ workouts, onOpen, onReimport, onLogout, onSync, onPush, on
                   <div style={{ padding: '10px 16px', fontSize: 12, color: 'var(--ink-3)', borderBottom: '1px solid var(--line)' }}>
                     {currentUser.email}
                   </div>
-                )}
-                {onPush && (
-                  <button
-                    onClick={async () => { setMenuOpen(false); await onPush(); }}
-                    style={{ width: '100%', textAlign: 'left', padding: '13px 16px', fontSize: 14, color: 'var(--ink-2)', background: 'none', border: 'none', cursor: 'pointer', borderBottom: '1px solid var(--line)' }}
-                  >
-                    Subir datos a la nube
-                  </button>
-                )}
-                {onSync && (
-                  <button
-                    disabled={syncing}
-                    onClick={async () => { setMenuOpen(false); setSyncing(true); await onSync(); setSyncing(false); }}
-                    style={{ width: '100%', textAlign: 'left', padding: '13px 16px', fontSize: 14, color: 'var(--ink-2)', background: 'none', border: 'none', cursor: 'pointer', borderBottom: '1px solid var(--line)' }}
-                  >
-                    {syncing ? 'Sincronizando…' : 'Sincronizar desde la nube'}
-                  </button>
                 )}
                 <button
                   onClick={() => { setMenuOpen(false); setConfirmClear(true); }}

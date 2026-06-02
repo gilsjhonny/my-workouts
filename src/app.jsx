@@ -1,8 +1,7 @@
 import React from 'react';
 import { parseCSV, buildModel, mergeSets } from './parser.js';
 import { ExerciseNamesContext, RoutineNamesContext, ExerciseAlternatesContext } from './contexts.js';
-import { storageGet, storageSet, storageDelete, setStorageUser, pushLocalToCloud, fullSyncFromCloud } from './storage.js';
-import { listenAuth, logout, cloudSet, cloudGetAll, cloudDeleteAll, cloudDiagnostic } from './supabase.js';
+import { listenAuth, logout, cloudSet, cloudGetAll, cloudDeleteAll } from './supabase.js';
 import { useTweaks, TweaksPanel, TweakSection, TweakColor, TweakRadio } from './tweaks-panel.jsx';
 import AuthScreen from './screen-auth.jsx';
 import ImportScreen from './screen-import.jsx';
@@ -27,9 +26,7 @@ const ACCENT_PRESETS = {
   lavender:{ accent: '#cdc1f9', soft: '#e6dffa', label: 'Lavender' },
 };
 
-const APP_VERSION = 'build-10-host';
 const SETS_KEY = 'workout_tracker_sets_v2';
-const STORAGE_KEY = 'workout_tracker_csv_v1';
 const NAME_KEY = 'workout_tracker_filename_v1';
 const RENAMES_KEY = 'workout_exercise_renames_v1';
 const ROUTINE_RENAMES_KEY = 'workout_routine_renames_v1';
@@ -82,7 +79,7 @@ function App() {
     });
   }, []);
 
-  // Load data once auth is resolved
+  // Load everything from Supabase (single source of truth)
   React.useEffect(() => {
     if (currentUser === undefined) return; // still resolving
 
@@ -93,105 +90,43 @@ function App() {
 
     if (loadedUidRef.current === currentUser.id) return;
     loadedUidRef.current = currentUser.id;
-    setStorageUser(currentUser.id);
+    setLoadingInitial(true);
 
     (async () => {
       try {
-        const hasLocalSets = !!(await storageGet(SETS_KEY));
-        const hasLocalRenames = !!localStorage.getItem(RENAMES_KEY);
-        const hasLocalRoutineRenames = !!localStorage.getItem(ROUTINE_RENAMES_KEY);
-        const hasLocalFolders = !!localStorage.getItem(FOLDERS_KEY);
-        const hasLocalAlternates = !!localStorage.getItem(ALTERNATES_KEY);
-        const allLocal = hasLocalSets && hasLocalRenames && hasLocalRoutineRenames && hasLocalFolders && hasLocalAlternates;
-
-        // One request to get everything from cloud if any local data is missing
-        let cloudAll = null;
-        if (!allLocal) {
-          cloudAll = await cloudGetAll(currentUser.id).catch(() => ({}));
-          // Populate missing local data from cloud
-          if (!hasLocalRenames && cloudAll[RENAMES_KEY]) {
-            localStorage.setItem(RENAMES_KEY, cloudAll[RENAMES_KEY]);
-            try { setRenamesState(JSON.parse(cloudAll[RENAMES_KEY])); } catch {}
-          } else if (hasLocalRenames) {
-            try { setRenamesState(JSON.parse(localStorage.getItem(RENAMES_KEY))); } catch {}
+        const cloud = await cloudGetAll(currentUser.id);
+        if (cloud[RENAMES_KEY]) { try { setRenamesState(JSON.parse(cloud[RENAMES_KEY])); } catch {} }
+        if (cloud[ROUTINE_RENAMES_KEY]) { try { setRoutineRenamesState(JSON.parse(cloud[ROUTINE_RENAMES_KEY])); } catch {} }
+        if (cloud[FOLDERS_KEY]) { try { setFoldersState(foldersFromRaw(JSON.parse(cloud[FOLDERS_KEY]))); } catch {} }
+        if (cloud[ALTERNATES_KEY]) { try { setAlternatesState(JSON.parse(cloud[ALTERNATES_KEY])); } catch {} }
+        if (cloud[SETS_KEY]) {
+          const loaded = setsFromJSON(cloud[SETS_KEY]);
+          if (loaded?.length) {
+            setSets(loaded);
+            setFilename(cloud[NAME_KEY] || 'data.csv');
+            setRoute({ name: 'list' });
           }
-          if (!hasLocalRoutineRenames && cloudAll[ROUTINE_RENAMES_KEY]) {
-            localStorage.setItem(ROUTINE_RENAMES_KEY, cloudAll[ROUTINE_RENAMES_KEY]);
-            try { setRoutineRenamesState(JSON.parse(cloudAll[ROUTINE_RENAMES_KEY])); } catch {}
-          } else if (hasLocalRoutineRenames) {
-            try { setRoutineRenamesState(JSON.parse(localStorage.getItem(ROUTINE_RENAMES_KEY))); } catch {}
-          }
-          if (!hasLocalFolders && cloudAll[FOLDERS_KEY]) {
-            localStorage.setItem(FOLDERS_KEY, cloudAll[FOLDERS_KEY]);
-            try { setFoldersState(foldersFromRaw(JSON.parse(cloudAll[FOLDERS_KEY]))); } catch {}
-          } else if (hasLocalFolders) {
-            try { setFoldersState(foldersFromRaw(JSON.parse(localStorage.getItem(FOLDERS_KEY)))); } catch {}
-          }
-          if (!hasLocalAlternates && cloudAll[ALTERNATES_KEY]) {
-            localStorage.setItem(ALTERNATES_KEY, cloudAll[ALTERNATES_KEY]);
-            try { setAlternatesState(JSON.parse(cloudAll[ALTERNATES_KEY])); } catch {}
-          } else if (hasLocalAlternates) {
-            try { setAlternatesState(JSON.parse(localStorage.getItem(ALTERNATES_KEY))); } catch {}
-          }
-        } else {
-          try { setRenamesState(JSON.parse(localStorage.getItem(RENAMES_KEY))); } catch {}
-          try { setRoutineRenamesState(JSON.parse(localStorage.getItem(ROUTINE_RENAMES_KEY))); } catch {}
-          try { setFoldersState(foldersFromRaw(JSON.parse(localStorage.getItem(FOLDERS_KEY)))); } catch {}
-          try { setAlternatesState(JSON.parse(localStorage.getItem(ALTERNATES_KEY))); } catch {}
-        }
-
-        // Push any existing local data up to Supabase (first login on this device)
-        pushLocalToCloud(currentUser.id).catch(() => {});
-
-        // Load sets
-        const storedName = await storageGet(NAME_KEY);
-        let loadedSets = null;
-
-        const json = await storageGet(SETS_KEY);
-        if (json) {
-          loadedSets = setsFromJSON(json);
-        } else {
-          // Migrate legacy CSV
-          const csv = await storageGet(STORAGE_KEY);
-          if (csv) {
-            const { sets } = parseCSV(csv);
-            if (sets.length) {
-              loadedSets = sets;
-              await storageSet(SETS_KEY, setsToJSON(sets));
-              await storageDelete(STORAGE_KEY);
-            }
-          }
-
-          // No local sets → restore from cloud data already fetched
-          if (!loadedSets && cloudAll) {
-            if (cloudAll[SETS_KEY]) {
-              loadedSets = setsFromJSON(cloudAll[SETS_KEY]);
-              await storageSet(SETS_KEY, cloudAll[SETS_KEY]);
-            }
-            if (cloudAll[NAME_KEY]) {
-              setFilename(cloudAll[NAME_KEY]);
-              await storageSet(NAME_KEY, cloudAll[NAME_KEY]);
-            }
-          }
-        }
-
-        if (loadedSets?.length) {
-          setSets(loadedSets);
-          setFilename(storedName || 'data.csv');
-          setRoute({ name: 'list' });
         }
       } catch (e) {
-        console.warn('Could not restore data:', e);
+        console.warn('Could not load data from cloud:', e);
+        alert('No se pudieron cargar los datos. Revisa tu conexión e inténtalo de nuevo.');
       }
       setLoadingInitial(false);
     })();
   }, [currentUser]);
 
+  // Optimistically update state, then write to Supabase. Surfaces save failures.
+  function saveCloud(key, value) {
+    if (!currentUser) return;
+    cloudSet(currentUser.id, key, value).catch(e => {
+      console.warn('Cloud save failed:', key, e);
+      alert('No se pudo guardar en la nube. Revisa tu conexión.');
+    });
+  }
+
   function persistFolders(next) {
     setFoldersState(next);
-    const serialized = JSON.stringify(next.map(f => ({ ...f, createdAt: f.createdAt.toISOString() })));
-    try { localStorage.setItem(FOLDERS_KEY, serialized); } catch {}
-    if (currentUser) cloudSet(currentUser.id, FOLDERS_KEY, serialized).catch(() => {});
+    saveCloud(FOLDERS_KEY, JSON.stringify(next.map(f => ({ ...f, createdAt: f.createdAt.toISOString() }))));
   }
 
   function createFolder(name) {
@@ -236,9 +171,7 @@ function App() {
 
   function persistAlternates(next) {
     setAlternatesState(next);
-    const serialized = JSON.stringify(next);
-    try { localStorage.setItem(ALTERNATES_KEY, serialized); } catch {}
-    if (currentUser) cloudSet(currentUser.id, ALTERNATES_KEY, serialized).catch(() => {});
+    saveCloud(ALTERNATES_KEY, JSON.stringify(next));
   }
 
   const alternatesApi = React.useMemo(() => ({
@@ -268,9 +201,7 @@ function App() {
       const next = { ...renames };
       if (!trimmed || trimmed === orig) delete next[orig]; else next[orig] = trimmed;
       setRenamesState(next);
-      const serialized = JSON.stringify(next);
-      try { localStorage.setItem(RENAMES_KEY, serialized); } catch {}
-      if (currentUser) cloudSet(currentUser.id, RENAMES_KEY, serialized).catch(() => {});
+      saveCloud(RENAMES_KEY, JSON.stringify(next));
     },
     hasRename: (orig) => !!renames[orig],
   }), [renames, currentUser]);
@@ -282,9 +213,7 @@ function App() {
       const next = { ...routineRenames };
       if (!trimmed || trimmed === orig) delete next[orig]; else next[orig] = trimmed;
       setRoutineRenamesState(next);
-      const serialized = JSON.stringify(next);
-      try { localStorage.setItem(ROUTINE_RENAMES_KEY, serialized); } catch {}
-      if (currentUser) cloudSet(currentUser.id, ROUTINE_RENAMES_KEY, serialized).catch(() => {});
+      saveCloud(ROUTINE_RENAMES_KEY, JSON.stringify(next));
     },
     hasRename: (orig) => !!routineRenames[orig],
   }), [routineRenames, currentUser]);
@@ -315,43 +244,8 @@ function App() {
   }, [sets]);
 
   function persistSets(setsToSave, name) {
-    storageSet(SETS_KEY, setsToJSON(setsToSave)).catch(e => console.warn('persistSets failed:', e));
-    if (name) storageSet(NAME_KEY, name).catch(() => {});
-    if (currentUser) cloudSet(currentUser.id, SETS_KEY, setsToJSON(setsToSave)).catch(e => console.warn('cloudSet sets failed:', e));
-  }
-
-  // Push everything from in-memory state (never from possibly-stale IndexedDB)
-  async function pushStateToCloud(uid) {
-    if (sets) await cloudSet(uid, SETS_KEY, setsToJSON(sets));
-    if (filename) await cloudSet(uid, NAME_KEY, filename);
-    await cloudSet(uid, RENAMES_KEY, JSON.stringify(renames));
-    await cloudSet(uid, ROUTINE_RENAMES_KEY, JSON.stringify(routineRenames));
-    await cloudSet(uid, FOLDERS_KEY, JSON.stringify(folders.map(f => ({ ...f, createdAt: f.createdAt.toISOString() }))));
-    await cloudSet(uid, ALTERNATES_KEY, JSON.stringify(alternates));
-  }
-
-  async function doSync() {
-    if (!currentUser) return;
-    try {
-      const { count, data } = await fullSyncFromCloud(currentUser.id);
-      if (count === 0 || !data) { alert('La nube no tiene datos para este usuario.'); return; }
-      let n = 0, latestStr = '—';
-      if (data[SETS_KEY]) {
-        const parsed = setsFromJSON(data[SETS_KEY]);
-        n = parsed.length;
-        const latest = parsed.reduce((m, s) => s.startTime && s.startTime > m ? s.startTime : m, new Date(0));
-        if (latest.getTime() > 0) latestStr = latest.toLocaleDateString('es-ES');
-        setSets(parsed);
-      }
-      if (data[NAME_KEY]) setFilename(data[NAME_KEY]);
-      if (data[RENAMES_KEY]) { try { setRenamesState(JSON.parse(data[RENAMES_KEY])); } catch {} }
-      if (data[ROUTINE_RENAMES_KEY]) { try { setRoutineRenamesState(JSON.parse(data[ROUTINE_RENAMES_KEY])); } catch {} }
-      if (data[FOLDERS_KEY]) { try { setFoldersState(foldersFromRaw(JSON.parse(data[FOLDERS_KEY]))); } catch {} }
-      if (data[ALTERNATES_KEY]) { try { setAlternatesState(JSON.parse(data[ALTERNATES_KEY])); } catch {} }
-      setRoute({ name: 'list' });
-      const diag = await cloudDiagnostic(currentUser.id).catch(e => 'diag err: ' + e.message);
-      alert(`Versión: ${APP_VERSION}\nUsuario: ${currentUser.email}\n\nSincronizado: ${n} entrenos. Más reciente: ${latestStr}\n\n--- DB directo ---\n${diag}`);
-    } catch (e) { alert('Error al sincronizar: ' + e.message); }
+    saveCloud(SETS_KEY, setsToJSON(setsToSave));
+    if (name) saveCloud(NAME_KEY, name);
   }
 
   function onImport(parsedSets, name) {
@@ -388,6 +282,30 @@ function App() {
     setRoute({ name: 'import' });
   }
 
+  function onLogout() {
+    logout();
+    loadedUidRef.current = null;
+    setCurrentUser(null);
+    setSets(null);
+    setFilename(null);
+    setRenamesState({});
+    setRoutineRenamesState({});
+    setFoldersState([]);
+    setAlternatesState({});
+    setRoute({ name: 'import' });
+  }
+
+  async function onClearAll() {
+    if (currentUser) await cloudDeleteAll(currentUser.id).catch(() => {});
+    setSets(null);
+    setFilename(null);
+    setRenamesState({});
+    setRoutineRenamesState({});
+    setFoldersState([]);
+    setAlternatesState({});
+    setRoute({ name: 'import' });
+  }
+
   // Still resolving auth or loading data
   if (currentUser === undefined || loadingInitial) {
     return (
@@ -418,11 +336,8 @@ function App() {
         hasData={!!sets}
         onContinue={() => setRoute({ name: 'list' })}
         currentUser={currentUser}
-        onLogout={() => { logout(); setStorageUser(null); setCurrentUser(null); }}
-        onSync={currentUser ? doSync : null}
+        onLogout={onLogout}
         onClearData={() => {
-          storageDelete(SETS_KEY).catch(() => {});
-          storageDelete(NAME_KEY).catch(() => {});
           setSets(null);
           setFilename(null);
         }}
@@ -435,42 +350,8 @@ function App() {
         onOpen={(title) => setRoute({ name: 'detail', title })}
         onReimport={onReimport}
         currentUser={currentUser}
-        onLogout={() => { logout(); setStorageUser(null); setCurrentUser(null); }}
-        onPush={currentUser ? async () => {
-          try {
-            const localN = sets?.length || 0;
-            const payloadKB = sets ? Math.round(setsToJSON(sets).length / 1024) : 0;
-            await pushStateToCloud(currentUser.id);
-            // Read back from Supabase to verify the write actually persisted
-            const { data } = await fullSyncFromCloud(currentUser.id);
-            let cloudN = 0, cloudLatest = '—';
-            if (data?.[SETS_KEY]) {
-              const back = setsFromJSON(data[SETS_KEY]);
-              cloudN = back.length;
-              const lt = back.reduce((m, s) => s.startTime && s.startTime > m ? s.startTime : m, new Date(0));
-              if (lt.getTime() > 0) cloudLatest = lt.toLocaleDateString('es-ES');
-            }
-            const host = (import.meta.env.VITE_SUPABASE_URL || '').replace(/^https?:\/\//, '').split('.')[0];
-            alert(`Versión: ${APP_VERSION}\nhost=${host}\nUsuario: ${currentUser.email}\n\nEnviado: ${localN} entrenos (${payloadKB} KB)\nVerificado en nube: ${cloudN} entrenos, más reciente ${cloudLatest}`);
-          } catch (e) { alert('Error al subir: ' + e.message); }
-        } : null}
-        onSync={currentUser ? doSync : null}
-        onClearAll={async () => {
-          storageDelete(SETS_KEY).catch(() => {});
-          storageDelete(NAME_KEY).catch(() => {});
-          try { localStorage.removeItem(RENAMES_KEY); } catch {}
-          try { localStorage.removeItem(ROUTINE_RENAMES_KEY); } catch {}
-          try { localStorage.removeItem(FOLDERS_KEY); } catch {}
-          try { localStorage.removeItem(ALTERNATES_KEY); } catch {}
-          if (currentUser) cloudDeleteAll(currentUser.id).catch(() => {});
-          setSets(null);
-          setFilename(null);
-          setRenamesState({});
-          setRoutineRenamesState({});
-          setFoldersState([]);
-          setAlternatesState({});
-          setRoute({ name: 'import' });
-        }}
+        onLogout={onLogout}
+        onClearAll={onClearAll}
       />
     );
   } else if (route.name === 'folders') {
@@ -588,11 +469,7 @@ function App() {
         <RoutineNamesContext.Provider value={routineNamesApi}>
           <ExerciseAlternatesContext.Provider value={alternatesApi}>
             {screen}
-            <TweaksUI tweaks={tweaks} setTweak={setTweaksRaw} onLogout={() => {
-              logout();
-              setStorageUser(null);
-              setCurrentUser(null);
-            }} />
+            <TweaksUI tweaks={tweaks} setTweak={setTweaksRaw} onLogout={onLogout} />
           </ExerciseAlternatesContext.Provider>
         </RoutineNamesContext.Provider>
       </ExerciseNamesContext.Provider>
