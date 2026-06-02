@@ -50,23 +50,22 @@ button { cursor: pointer; border: 0; background: transparent; }
 .app-frame {
   width: 100%;
   max-width: 460px;
-  min-height: 100dvh;
+  height: 100dvh;
   background: var(--bg);
   position: relative;
   display: flex;
   flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 @media (min-width: 720px) {
-  .app-root {
-    padding: 32px 0;
-    background: linear-gradient(180deg, #ecede5 0%, #f4f4f0 200px);
-  }
   .app-frame {
-    max-width: 440px;
-    min-height: calc(100dvh - 64px);
-    border-radius: 36px;
-    box-shadow: 0 30px 80px -30px rgba(20,22,15,0.18), 0 0 0 1px rgba(20,22,15,0.04);
-    overflow: hidden;
+    max-width: 600px;
+    height: 100dvh;
+    border-left: 1px solid var(--line);
+    border-right: 1px solid var(--line);
+    overflow-y: auto;
+    overflow-x: hidden;
   }
 }
 
@@ -77,6 +76,10 @@ button { cursor: pointer; border: 0; background: transparent; }
   justify-content: space-between;
   padding: 18px 20px 8px;
   gap: 12px;
+  position: sticky;
+  top: 0;
+  z-index: 6;
+  background: var(--bg);
 }
 .topbar .iconbtn {
   width: 40px; height: 40px;
