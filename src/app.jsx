@@ -314,8 +314,9 @@ function App() {
   }, [sets]);
 
   function persistSets(setsToSave, name) {
-    storageSet(SETS_KEY, setsToJSON(setsToSave)).catch(e => console.warn('Could not persist sets:', e));
+    storageSet(SETS_KEY, setsToJSON(setsToSave)).catch(e => console.warn('persistSets failed:', e));
     if (name) storageSet(NAME_KEY, name).catch(() => {});
+    if (currentUser) cloudSet(currentUser.id, SETS_KEY, setsToJSON(setsToSave)).catch(e => console.warn('cloudSet sets failed:', e));
   }
 
   function onImport(parsedSets, name) {
@@ -408,6 +409,7 @@ function App() {
         onLogout={() => { logout(); setStorageUser(null); setCurrentUser(null); }}
         onPush={currentUser ? async () => {
           try {
+            if (sets) await cloudSet(currentUser.id, SETS_KEY, setsToJSON(sets));
             await pushLocalToCloud(currentUser.id);
             alert('Datos subidos a la nube correctamente.');
           } catch (e) { alert('Error al subir: ' + e.message); }
