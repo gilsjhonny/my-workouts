@@ -82,6 +82,7 @@ function FolderListScreen({ folders, onOpen, onCreate, onReimport }) {
                 <span className="dot" />
                 <span>{fmtRelative(f.createdAt)}</span>
               </div>
+              {f.description && <div className="meta" style={{ marginTop: 2, color: 'var(--ink-3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.description}</div>}
             </div>
             <span className="chev"><Icon.Chevron /></span>
           </button>
@@ -93,10 +94,11 @@ function FolderListScreen({ folders, onOpen, onCreate, onReimport }) {
   );
 }
 
-function FolderDetailScreen({ folder, workouts, onBack, onOpenRoutine, onRename, onDelete, onUpdateRoutines, onUpdateDateFrom, onEditTemplate, onOpenTemplate }) {
+function FolderDetailScreen({ folder, workouts, onBack, onOpenRoutine, onRename, onUpdateDescription, onDelete, onUpdateRoutines, onUpdateDateFrom, onEditTemplate, onOpenTemplate }) {
   const routineNames = React.useContext(RoutineNamesContext);
   const [editingName, setEditingName] = React.useState(false);
   const [draft, setDraft] = React.useState(folder.name);
+  const [descDraft, setDescDraft] = React.useState(folder.description || '');
   const [picking, setPicking] = React.useState(false);
   const nameRef = React.useRef(null);
 
@@ -106,6 +108,10 @@ function FolderDetailScreen({ folder, workouts, onBack, onOpenRoutine, onRename,
       nameRef.current.select();
     }
   }, [editingName]);
+
+  React.useEffect(() => {
+    setDescDraft(folder.description || '');
+  }, [folder.description]);
 
   function commitName() {
     const v = draft.trim();
@@ -179,6 +185,14 @@ function FolderDetailScreen({ folder, workouts, onBack, onOpenRoutine, onRename,
         <div className="when">
           <span>{inFolder.length} sesión{inFolder.length === 1 ? '' : 'es'}</span>
         </div>
+        <textarea
+          value={descDraft}
+          onChange={(e) => setDescDraft(e.target.value)}
+          onBlur={() => onUpdateDescription?.(descDraft.trim())}
+          placeholder="Descripción del programa…"
+          rows={2}
+          style={{ width: '100%', marginTop: 10, padding: '8px 0', background: 'none', border: 'none', borderTop: '1px solid var(--line)', resize: 'none', fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.5, outline: 'none', fontFamily: 'inherit' }}
+        />
       </div>
 
       <div style={{ padding: '0 16px 12px', overflow: 'hidden' }}>
