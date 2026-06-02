@@ -432,14 +432,10 @@ function App() {
     screen = (
       <FolderDetailScreen
         folder={folder}
-        workouts={workouts}
         onBack={() => setRoute({ name: 'folders' })}
-        onOpenRoutine={(title) => setRoute({ name: 'detail', title, dateFrom: folder.dateFrom || null, folderId: folder.id, from: { name: 'folder-detail', id: folder.id } })}
         onRename={(name) => updateFolder(folder.id, { name })}
         onUpdateDescription={(description) => updateFolder(folder.id, { description })}
         onDelete={() => { deleteFolder(folder.id); setRoute({ name: 'folders' }); }}
-        onUpdateRoutines={(titles) => updateFolder(folder.id, { routineTitles: titles })}
-        onUpdateDateFrom={(dateFrom) => updateFolder(folder.id, { dateFrom })}
         onOpenTemplate={(templateId) => setRoute({ name: 'template-progress', folderId: folder.id, templateId })}
         onEditTemplate={(templateId) => setRoute({ name: 'template-edit', folderId: folder.id, templateId: templateId || null })}
       />

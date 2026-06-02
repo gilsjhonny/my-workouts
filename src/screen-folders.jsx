@@ -1,8 +1,6 @@
 import React from 'react';
 import Icon from './icons.jsx';
 import { fmtRelative } from './parser.js';
-import { RoutineNamesContext } from './contexts.js';
-import { initials } from './screen-list.jsx';
 
 function FolderListScreen({ folders, onOpen, onCreate, onReimport }) {
   const [creating, setCreating] = React.useState(false);
@@ -78,7 +76,7 @@ function FolderListScreen({ folders, onOpen, onCreate, onReimport }) {
             <div className="main">
               <div className="name">{f.name}</div>
               <div className="meta">
-                <span>{f.routineTitles.length} sesión{f.routineTitles.length === 1 ? '' : 'es'}</span>
+                <span>{(f.templates || []).length} día{(f.templates || []).length === 1 ? '' : 's'}</span>
                 <span className="dot" />
                 <span>{fmtRelative(f.createdAt)}</span>
               </div>
@@ -94,12 +92,10 @@ function FolderListScreen({ folders, onOpen, onCreate, onReimport }) {
   );
 }
 
-function FolderDetailScreen({ folder, workouts, onBack, onOpenRoutine, onRename, onUpdateDescription, onDelete, onUpdateRoutines, onUpdateDateFrom, onEditTemplate, onOpenTemplate }) {
-  const routineNames = React.useContext(RoutineNamesContext);
+function FolderDetailScreen({ folder, onBack, onRename, onUpdateDescription, onDelete, onEditTemplate, onOpenTemplate }) {
   const [editingName, setEditingName] = React.useState(false);
   const [draft, setDraft] = React.useState(folder.name);
   const [descDraft, setDescDraft] = React.useState(folder.description || '');
-  const [picking, setPicking] = React.useState(false);
   const nameRef = React.useRef(null);
 
   React.useEffect(() => {
@@ -119,32 +115,7 @@ function FolderDetailScreen({ folder, workouts, onBack, onOpenRoutine, onRename,
     setEditingName(false);
   }
 
-  const from = folder.dateFrom ? new Date(folder.dateFrom) : null;
-
-  const inFolder = React.useMemo(() => {
-    return folder.routineTitles
-      .map(t => workouts.find(w => w.title === t))
-      .filter(Boolean)
-      .map(w => {
-        const filteredSessions = from
-          ? w.sessions.filter(s => s.startTime >= from)
-          : w.sessions;
-        return { ...w, filteredSessions, filteredCount: filteredSessions.length };
-      })
-      .sort((a, b) => routineNames.get(a.title).localeCompare(routineNames.get(b.title)));
-  }, [workouts, folder.routineTitles, folder.dateFrom]);
-
-  if (picking) {
-    return (
-      <RoutinePicker
-        workouts={workouts}
-        initialSelected={folder.routineTitles}
-        folderName={folder.name}
-        onCancel={() => setPicking(false)}
-        onConfirm={(titles) => { onUpdateRoutines(titles); setPicking(false); }}
-      />
-    );
-  }
+  const templates = folder.templates || [];
 
   return (
     <div className="app-frame" data-screen-label="05 Detalle de programa">
@@ -182,9 +153,6 @@ function FolderDetailScreen({ folder, workouts, onBack, onOpenRoutine, onRename,
             <Icon.Pencil size={13} color="rgba(20,22,15,0.4)" />
           </h1>
         )}
-        <div className="when">
-          <span>{inFolder.length} sesión{inFolder.length === 1 ? '' : 'es'}</span>
-        </div>
         <textarea
           value={descDraft}
           onChange={(e) => setDescDraft(e.target.value)}
@@ -195,71 +163,15 @@ function FolderDetailScreen({ folder, workouts, onBack, onOpenRoutine, onRename,
         />
       </div>
 
-      <div style={{ padding: '0 16px 12px', overflow: 'hidden' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-          <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Desde</div>
-          {folder.dateFrom && (
-            <button
-              onClick={() => onUpdateDateFrom?.(null)}
-              style={{ padding: '2px 0', background: 'none', border: 'none', fontSize: 12, color: 'var(--ink-3)', cursor: 'pointer' }}
-            >
-              Limpiar
-            </button>
-          )}
-        </div>
-        <input
-          type="date"
-          value={folder.dateFrom || ''}
-          onChange={e => onUpdateDateFrom?.(e.target.value || null)}
-          style={{ width: '100%', minWidth: 0, padding: '9px 12px', borderRadius: 12, border: '1px solid var(--line-2)', background: 'var(--surface)', fontSize: 14 }}
-        />
-      </div>
-
       <div className="list">
-        <button className="folder-create-btn" onClick={() => setPicking(true)}>
-          <Icon.Plus size={18} />
-          <span>{folder.routineTitles.length === 0 ? 'Añadir sesiones' : 'Editar sesiones'}</span>
-        </button>
-
-        {folder.routineTitles.length === 0 && (
+        {templates.length === 0 && (
           <div className="empty" style={{ paddingTop: 32 }}>
-            <div style={{ fontWeight: 600, marginBottom: 4 }}>Programa vacío</div>
-            <div style={{ fontSize: 13 }}>Añade sesiones para verlas aquí.</div>
+            <div style={{ fontWeight: 600, marginBottom: 4 }}>Sin días aún</div>
+            <div style={{ fontSize: 13 }}>Añade los días que el coach te dio.</div>
           </div>
         )}
 
-        {inFolder.map((w, i) => (
-          <button
-            key={w.title}
-            className="workout-row fade-in"
-            style={{ animationDelay: `${Math.min(i, 12) * 0.02}s` }}
-            onClick={() => onOpenRoutine(w.title)}
-          >
-            <div className="badge">
-              <span className="glyph">{initials(routineNames.get(w.title))}</span>
-            </div>
-            <div className="main">
-              <div className="name">
-                {routineNames.get(w.title)}
-                {routineNames.hasRename(w.title) && <span className="renamed-dot" />}
-              </div>
-              <div className="meta">
-                <span>{w.filteredCount} {w.filteredCount === 1 ? 'sesión' : 'sesiones'}</span>
-                <span className="dot" />
-                <span>{w.exerciseCount} ej</span>
-                {w.filteredSessions[0] && <><span className="dot" /><span>{fmtRelative(w.filteredSessions[0].startTime)}</span></>}
-              </div>
-            </div>
-            <span className="chev"><Icon.Chevron /></span>
-          </button>
-        ))}
-        <div style={{ height: 1, background: 'var(--line)', margin: '8px 16px' }} />
-
-        <div style={{ padding: '8px 16px 4px', fontSize: 11, fontWeight: 600, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-          Días
-        </div>
-
-        {(folder.templates || []).map(t => (
+        {templates.map(t => (
           <button
             key={t.id}
             className="workout-row"
@@ -287,86 +199,6 @@ function FolderDetailScreen({ folder, workouts, onBack, onOpenRoutine, onRename,
   );
 }
 
-function RoutinePicker({ workouts, initialSelected, folderName, onCancel, onConfirm }) {
-  const routineNames = React.useContext(RoutineNamesContext);
-  const [selected, setSelected] = React.useState(new Set(initialSelected));
-  const [query, setQuery] = React.useState('');
-
-  const filtered = React.useMemo(() => {
-    if (!query) return workouts;
-    const q = query.toLowerCase();
-    return workouts.filter(w =>
-      routineNames.get(w.title).toLowerCase().includes(q) ||
-      w.title.toLowerCase().includes(q)
-    );
-  }, [workouts, query, routineNames]);
-
-  function toggle(title) {
-    const next = new Set(selected);
-    if (next.has(title)) next.delete(title); else next.add(title);
-    setSelected(next);
-  }
-
-  return (
-    <div className="app-frame" data-screen-label="06 Selector de sesiones">
-      <div className="topbar">
-        <button className="iconbtn" onClick={onCancel} aria-label="cancelar"><Icon.Back /></button>
-        <div className="title">{folderName}</div>
-        <button className="iconbtn" onClick={() => onConfirm([...selected])} style={{ background: 'var(--ink)', color: '#fff', border: 0 }} aria-label="hecho">
-          <Icon.Check size={16} color="#fff" />
-        </button>
-      </div>
-
-      <div className="page-head">
-        <div className="eyebrow">Selector</div>
-        <h1>{selected.size} seleccionada{selected.size === 1 ? '' : 's'}</h1>
-        <div className="sub">Marca las sesiones que quieres incluir en este programa.</div>
-      </div>
-
-      <div className="search">
-        <Icon.Search />
-        <input
-          placeholder="Buscar sesiones…"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
-      </div>
-
-      <div className="list">
-        {filtered.map((w, i) => {
-          const checked = selected.has(w.title);
-          return (
-            <button
-              key={w.title}
-              className={'workout-row picker' + (checked ? ' checked' : '')}
-              onClick={() => toggle(w.title)}
-            >
-              <div className={'check-box' + (checked ? ' on' : '')}>
-                {checked && <Icon.Check size={14} color="var(--accent-ink)" />}
-              </div>
-              <div className="main">
-                <div className="name">{routineNames.get(w.title)}</div>
-                <div className="meta">
-                  <span>{w.sessionCount} {w.sessionCount === 1 ? 'sesión' : 'sesiones'}</span>
-                  <span className="dot" />
-                  <span>{fmtRelative(w.lastDate)}</span>
-                </div>
-              </div>
-            </button>
-          );
-        })}
-        <div className="safe-bottom" />
-      </div>
-
-      <div className="picker-bottombar">
-        <button className="pickbtn ghost" onClick={onCancel}>Cancelar</button>
-        <button className="pickbtn" onClick={() => onConfirm([...selected])}>
-          Guardar · {selected.size}
-        </button>
-      </div>
-    </div>
-  );
-}
 
 export function BottomTabs({ active, onChange }) {
   const switchTo = (key) => {
