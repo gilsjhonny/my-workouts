@@ -436,11 +436,19 @@ function App() {
         onLogout={() => { logout(); setStorageUser(null); setCurrentUser(null); }}
         onPush={currentUser ? async () => {
           try {
+            const localN = sets?.length || 0;
+            const payloadKB = sets ? Math.round(setsToJSON(sets).length / 1024) : 0;
             await pushStateToCloud(currentUser.id);
-            const n = sets?.length || 0;
-            const latest = sets?.reduce((m, s) => s.startTime && s.startTime > m ? s.startTime : m, new Date(0));
-            const latestStr = latest && latest.getTime() > 0 ? latest.toLocaleDateString('es-ES') : '—';
-            alert(`Subido: ${n} entrenos. Más reciente: ${latestStr}`);
+            // Read back from Supabase to verify the write actually persisted
+            const { data } = await fullSyncFromCloud(currentUser.id);
+            let cloudN = 0, cloudLatest = '—';
+            if (data?.[SETS_KEY]) {
+              const back = setsFromJSON(data[SETS_KEY]);
+              cloudN = back.length;
+              const lt = back.reduce((m, s) => s.startTime && s.startTime > m ? s.startTime : m, new Date(0));
+              if (lt.getTime() > 0) cloudLatest = lt.toLocaleDateString('es-ES');
+            }
+            alert(`Enviado: ${localN} entrenos (${payloadKB} KB)\nVerificado en nube: ${cloudN} entrenos, más reciente ${cloudLatest}`);
           } catch (e) { alert('Error al subir: ' + e.message); }
         } : null}
         onSync={currentUser ? doSync : null}
