@@ -2,7 +2,14 @@ import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
+  import.meta.env.VITE_SUPABASE_ANON_KEY,
+  {
+    global: {
+      // Force every request to bypass the HTTP cache so reads always reflect
+      // the latest data (some mobile browsers cache GET responses).
+      fetch: (input, init = {}) => fetch(input, { ...init, cache: 'no-store' }),
+    },
+  }
 );
 
 export default supabase;
