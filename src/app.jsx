@@ -1,7 +1,7 @@
 import React from 'react';
 import { parseCSV, buildModel, mergeSets } from './parser.js';
 import { ExerciseNamesContext, RoutineNamesContext, ExerciseAlternatesContext } from './contexts.js';
-import { storageGet, storageSet, storageDelete, setStorageUser, pushLocalToCloud } from './storage.js';
+import { storageGet, storageSet, storageDelete, setStorageUser, pushLocalToCloud, fullSyncFromCloud } from './storage.js';
 import { listenAuth, logout, cloudSet, cloudGetAll, cloudDeleteAll } from './supabase.js';
 import { useTweaks, TweaksPanel, TweakSection, TweakColor, TweakRadio } from './tweaks-panel.jsx';
 import AuthScreen from './screen-auth.jsx';
@@ -383,6 +383,7 @@ function App() {
         onContinue={() => setRoute({ name: 'list' })}
         currentUser={currentUser}
         onLogout={() => { logout(); setStorageUser(null); setCurrentUser(null); }}
+        onSync={currentUser ? async () => { await fullSyncFromCloud(currentUser.id); window.location.reload(); } : null}
         onClearData={() => {
           storageDelete(SETS_KEY).catch(() => {});
           storageDelete(NAME_KEY).catch(() => {});
@@ -399,6 +400,7 @@ function App() {
         onReimport={onReimport}
         currentUser={currentUser}
         onLogout={() => { logout(); setStorageUser(null); setCurrentUser(null); }}
+        onSync={currentUser ? async () => { await fullSyncFromCloud(currentUser.id); window.location.reload(); } : null}
         onClearAll={async () => {
           storageDelete(SETS_KEY).catch(() => {});
           storageDelete(NAME_KEY).catch(() => {});

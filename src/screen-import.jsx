@@ -2,7 +2,7 @@ import React from 'react';
 import { parseCSV } from './parser.js';
 import Icon from './icons.jsx';
 
-function ImportScreen({ onImport, onMerge, onLoadDemo, hasData, onContinue, onClearData, onLogout, currentUser }) {
+function ImportScreen({ onImport, onMerge, onLoadDemo, hasData, onContinue, onClearData, onLogout, onSync, currentUser }) {
   const [dragOver, setDragOver] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState(null);
@@ -59,6 +59,14 @@ function ImportScreen({ onImport, onMerge, onLoadDemo, hasData, onContinue, onCl
                 <div style={{ padding: '6px 14px 8px', fontSize: 12, color: 'var(--ink-3)', borderBottom: '1px solid var(--line)', marginBottom: 4 }}>
                   {currentUser.email}
                 </div>
+              )}
+              {onSync && (
+                <button
+                  onClick={async () => { setMenuOpen(false); await onSync(); }}
+                  style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 14px', background: 'none', border: 'none', fontSize: 14, color: 'var(--ink-2)', cursor: 'pointer', borderBottom: '1px solid var(--line)' }}
+                >
+                  Sincronizar desde la nube
+                </button>
               )}
               <button
                 onClick={() => { setMenuOpen(false); onLogout?.(); }}

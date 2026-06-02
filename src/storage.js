@@ -57,6 +57,22 @@ export async function syncFromCloud(uid) {
   return all;
 }
 
+const LS_KEYS = [
+  'workout_exercise_renames_v1',
+  'workout_routine_renames_v1',
+  'workout_folders_v1',
+  'workout_exercise_alternates_v1',
+];
+
+export async function fullSyncFromCloud(uid) {
+  const all = await cloudGetAll(uid);
+  const db = await getDB();
+  const tx = db.transaction(STORE, 'readwrite');
+  await Promise.all(Object.entries(all).map(([k, v]) => tx.store.put(v, k)));
+  await tx.done;
+  LS_KEYS.forEach(k => { if (all[k]) localStorage.setItem(k, all[k]); });
+}
+
 export async function pushLocalToCloud(uid) {
   const db = await getDB();
   const keys = await db.getAllKeys(STORE);
