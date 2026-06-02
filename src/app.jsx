@@ -503,6 +503,7 @@ function App() {
       <SlotMappingScreen
         folder={folder}
         session={session}
+        lockedTemplateId={route.from?.name === 'template-progress' ? route.from.templateId : null}
         onBack={() => setRoute(route.from || { name: 'list' })}
         onConfirm={(templateId, mapping) => {
           saveAssignment(route.folderId, route.sessionKey, templateId, mapping);

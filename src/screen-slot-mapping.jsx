@@ -2,12 +2,13 @@ import React from 'react';
 import Icon from './icons.jsx';
 import { ExerciseNamesContext } from './contexts.js';
 
-function SlotMappingScreen({ folder, session, onBack, onConfirm }) {
+function SlotMappingScreen({ folder, session, onBack, onConfirm, lockedTemplateId }) {
   const names = React.useContext(ExerciseNamesContext);
   const templates = folder.templates || [];
 
   const [selectedTemplateId, setSelectedTemplateId] = React.useState(
     () => {
+      if (lockedTemplateId) return lockedTemplateId;
       const existing = folder.assignments?.[session.key];
       return existing?.templateId || templates[0]?.id || null;
     }
@@ -101,7 +102,7 @@ function SlotMappingScreen({ folder, session, onBack, onConfirm }) {
         </button>
       </div>
 
-      {templates.length > 1 && (
+      {!lockedTemplateId && templates.length > 1 && (
         <div style={{ padding: '10px 16px 0', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {templates.map(t => (
             <button
