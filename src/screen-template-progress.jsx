@@ -105,7 +105,7 @@ function SessionPicker({ workouts, assignedKeys, filteredTitles, templateName, o
   );
 }
 
-function TemplateProgressScreen({ folder, template, workouts, onBack, onEdit, onAddSession, onOpenSession, openPicker }) {
+function TemplateProgressScreen({ folder, template, workouts, onBack, onEdit, onAddSession, onOpenSession, onViewSession, openPicker }) {
   const [picking, setPicking] = React.useState(openPicker || false);
 
   const slotHistories = React.useMemo(
@@ -215,7 +215,7 @@ function TemplateProgressScreen({ folder, template, workouts, onBack, onEdit, on
               </div>
             ) : (
               <div className="ex-history-wrap" style={{ marginBottom: 8 }}>
-                <FullHistoryGrid history={history} canonicalName={slot} onOpenSession={onOpenSession} />
+                <FullHistoryGrid history={history} canonicalName={slot} onOpenSession={onViewSession || onOpenSession} />
               </div>
             )}
           </div>
