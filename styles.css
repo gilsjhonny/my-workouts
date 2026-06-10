@@ -518,7 +518,7 @@ button { cursor: pointer; border: 0; background: transparent; }
 
 .history-current {
   flex-shrink: 0;
-  width: 160px;
+  width: 170px;
   border-right: 2px solid var(--ink);
   position: relative;
   box-shadow: 8px 0 12px -8px rgba(20,22,15,0.18);
