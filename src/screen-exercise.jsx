@@ -410,8 +410,18 @@ export function FullHistoryGrid({ history, canonicalName, onOpenSession, hideRou
   // newest-to-oldest: old sessions reversed so index 0 = second-newest
   const oldDisplay = display.slice(0, lastIdx).map((h, i) => ({ h, origIdx: i })).reverse();
 
+  const splitRef = React.useRef(null);
+  const historyKey = display.map(h => h.session.key).join(',');
+  React.useLayoutEffect(() => {
+    if (!splitRef.current) return;
+    const heads = splitRef.current.querySelectorAll('.hcell.head');
+    heads.forEach(el => { el.style.minHeight = ''; });
+    const maxH = Math.max(...Array.from(heads).map(el => el.getBoundingClientRect().height));
+    heads.forEach(el => { el.style.minHeight = maxH + 'px'; });
+  }, [historyKey]);
+
   return (
-    <div className="history-split">
+    <div className="history-split" ref={splitRef}>
       <div className="history-current">
         <div className="history-grid cur-grid" style={{ gridTemplateColumns: 'minmax(108px, 1fr)' }}>
           <div
