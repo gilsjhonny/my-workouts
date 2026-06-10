@@ -391,7 +391,7 @@ function buildColorMap(display) {
   return map;
 }
 
-export function FullHistoryGrid({ history, canonicalName, onOpenSession }) {
+export function FullHistoryGrid({ history, canonicalName, onOpenSession, hideRoutineName }) {
   const names = React.useContext(ExerciseNamesContext);
   const routineNames = React.useContext(RoutineNamesContext);
   const display = history.slice().reverse();
@@ -416,7 +416,7 @@ export function FullHistoryGrid({ history, canonicalName, onOpenSession }) {
     <div className="history-split">
       {display.length > 1 ? (
         <div className="history-scroll" ref={wrapRef}>
-          <div className="history-grid old" style={{ gridTemplateColumns: `28px repeat(${display.length - 1}, minmax(96px, 1fr))` }}>
+          <div className="history-grid old" style={{ gridTemplateColumns: `28px repeat(${display.length - 1}, minmax(96px, 130px))` }}>
             <div className="hcell idx">#</div>
             {display.slice(0, lastIdx).map((h) => (
               <div
@@ -427,9 +427,11 @@ export function FullHistoryGrid({ history, canonicalName, onOpenSession }) {
               >
                 <div className="date">{h.session.startTime.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}</div>
                 <div className="yr">{h.session.startTime.getFullYear()}</div>
-                <div className="rt" title={routineNames.get(h.session.title)}>
-                  {shortRoutine(routineNames.get(h.session.title))}
-                </div>
+                {!hideRoutineName && (
+                  <div className="rt" title={routineNames.get(h.session.title)}>
+                    {shortRoutine(routineNames.get(h.session.title))}
+                  </div>
+                )}
                 {h.actualName && h.actualName !== canonicalName && (
                   <div className="alt-tag" style={useColors ? { background: colBg(h), color: colFg(h), outline: `1px solid ${colFg(h)}` } : undefined} title={names.get(h.actualName)}>
                     {names.get(h.actualName)}
@@ -469,7 +471,9 @@ export function FullHistoryGrid({ history, canonicalName, onOpenSession }) {
           >
             <div className="date">{display[lastIdx].session.startTime.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}</div>
             <div className="yr">{display[lastIdx].session.startTime.getFullYear()}</div>
-            <div className="rt" style={{ color: 'rgba(20,22,15,0.6)' }}>{shortRoutine(routineNames.get(display[lastIdx].session.title))}</div>
+            {!hideRoutineName && (
+              <div className="rt" style={{ color: 'rgba(20,22,15,0.6)' }}>{shortRoutine(routineNames.get(display[lastIdx].session.title))}</div>
+            )}
             {display[lastIdx].actualName && display[lastIdx].actualName !== canonicalName && (
               <div className="alt-tag" style={useColors ? { background: colorMap.get(display[lastIdx].actualName)?.bg, color: colorMap.get(display[lastIdx].actualName)?.fg, outline: `1px solid ${colorMap.get(display[lastIdx].actualName)?.fg}` } : undefined} title={names.get(display[lastIdx].actualName)}>
                 {names.get(display[lastIdx].actualName)}

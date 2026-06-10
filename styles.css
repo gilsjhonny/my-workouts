@@ -518,6 +518,7 @@ button { cursor: pointer; border: 0; background: transparent; }
 
 .history-current {
   flex-shrink: 0;
+  width: 130px;
   border-left: 2px solid var(--ink);
   position: relative;
   box-shadow: -8px 0 12px -8px rgba(20,22,15,0.18);
@@ -554,7 +555,7 @@ button { cursor: pointer; border: 0; background: transparent; }
   background: var(--surface-2);
   padding: 6px 10px;
   justify-content: center;
-  min-height: 62px;
+  min-height: 70px;
 }
 .history-grid .hcell.head .date {
   font-family: var(--font-display);
@@ -589,10 +590,7 @@ button { cursor: pointer; border: 0; background: transparent; }
   border-radius: 4px;
   padding: 2px 5px;
   margin-top: 4px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
+  word-break: break-word;
 }
 .history-grid .hcell.head.dim {
   color: var(--ink-3);

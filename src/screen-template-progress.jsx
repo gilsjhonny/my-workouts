@@ -215,7 +215,7 @@ function TemplateProgressScreen({ folder, template, workouts, onBack, onEdit, on
               </div>
             ) : (
               <div className="ex-history-wrap" style={{ marginBottom: 8 }}>
-                <FullHistoryGrid history={history} canonicalName={slot} onOpenSession={onViewSession || onOpenSession} />
+                <FullHistoryGrid history={history} canonicalName={slot} onOpenSession={onViewSession || onOpenSession} hideRoutineName />
               </div>
             )}
           </div>
