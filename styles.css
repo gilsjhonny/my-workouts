@@ -512,19 +512,16 @@ button { cursor: pointer; border: 0; background: transparent; }
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
-  display: flex;
-  align-items: flex-start;
 }
-.history-scroll .history-grid { margin-left: auto; }
 .history-scroll::-webkit-scrollbar { height: 6px; }
 .history-scroll::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: 3px; }
 
 .history-current {
   flex-shrink: 0;
   width: 130px;
-  border-left: 2px solid var(--ink);
+  border-right: 2px solid var(--ink);
   position: relative;
-  box-shadow: -8px 0 12px -8px rgba(20,22,15,0.18);
+  box-shadow: 8px 0 12px -8px rgba(20,22,15,0.18);
   z-index: 1;
 }
 

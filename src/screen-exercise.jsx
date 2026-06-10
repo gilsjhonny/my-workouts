@@ -407,61 +407,11 @@ export function FullHistoryGrid({ history, canonicalName, onOpenSession, hideRou
   const colBg = (h) => useColors ? (colorMap.get(h.actualName)?.bg || undefined) : undefined;
   const colFg = (h) => useColors ? (colorMap.get(h.actualName)?.fg || undefined) : undefined;
 
-  const wrapRef = React.useRef(null);
-  React.useLayoutEffect(() => {
-    if (wrapRef.current) wrapRef.current.scrollLeft = wrapRef.current.scrollWidth;
-  }, [display.length]);
+  // newest-to-oldest: old sessions reversed so index 0 = second-newest
+  const oldDisplay = display.slice(0, lastIdx).map((h, i) => ({ h, origIdx: i })).reverse();
 
   return (
     <div className="history-split">
-      {display.length > 1 ? (
-        <div className="history-scroll" ref={wrapRef}>
-          <div className="history-grid old" style={{ gridTemplateColumns: `28px repeat(${display.length - 1}, minmax(96px, 130px))` }}>
-            <div className="hcell idx">#</div>
-            {display.slice(0, lastIdx).map((h) => (
-              <div
-                key={h.session.key}
-                className="hcell head"
-                style={{ background: colBg(h), cursor: onOpenSession ? 'pointer' : undefined }}
-                onClick={onOpenSession ? () => onOpenSession(h.session.key, h.session.title) : undefined}
-              >
-                <div className="date">{h.session.startTime.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}</div>
-                <div className="yr">{h.session.startTime.getFullYear()}</div>
-                {!hideRoutineName && (
-                  <div className="rt" title={routineNames.get(h.session.title)}>
-                    {shortRoutine(routineNames.get(h.session.title))}
-                  </div>
-                )}
-                {h.actualName && h.actualName !== canonicalName && (
-                  <div className="alt-tag" style={useColors ? { background: colBg(h), color: colFg(h), outline: `1px solid ${colFg(h)}` } : undefined} title={names.get(h.actualName)}>
-                    {names.get(h.actualName)}
-                  </div>
-                )}
-              </div>
-            ))}
-            {rows.map(rIdx => (
-              <React.Fragment key={rIdx}>
-                <div className="hcell idx">{rIdx + 1}</div>
-                {display.slice(0, lastIdx).map((h, ci) => {
-                  const set = h.ex.sets[rIdx];
-                  const isTop = set && tops[ci] && set === tops[ci];
-                  return (
-                    <div key={h.session.key + ':' + rIdx} className={'hcell set' + (isTop ? ' top' : '')} style={{ background: colBg(h) }}>
-                      <SetMini set={set} prev={null} isTop={isTop} />
-                    </div>
-                  );
-                })}
-              </React.Fragment>
-            ))}
-          </div>
-        </div>
-      ) : (
-        <div className="history-empty">
-          Solo una sesión registrada
-          <span>aún sin historial</span>
-        </div>
-      )}
-
       <div className="history-current">
         <div className="history-grid cur-grid" style={{ gridTemplateColumns: 'minmax(108px, 1fr)' }}>
           <div
@@ -492,6 +442,54 @@ export function FullHistoryGrid({ history, canonicalName, onOpenSession, hideRou
           })}
         </div>
       </div>
+
+      {display.length > 1 ? (
+        <div className="history-scroll">
+          <div className="history-grid old" style={{ gridTemplateColumns: `28px repeat(${display.length - 1}, minmax(96px, 130px))` }}>
+            <div className="hcell idx">#</div>
+            {oldDisplay.map(({ h }) => (
+              <div
+                key={h.session.key}
+                className="hcell head"
+                style={{ background: colBg(h), cursor: onOpenSession ? 'pointer' : undefined }}
+                onClick={onOpenSession ? () => onOpenSession(h.session.key, h.session.title) : undefined}
+              >
+                <div className="date">{h.session.startTime.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}</div>
+                <div className="yr">{h.session.startTime.getFullYear()}</div>
+                {!hideRoutineName && (
+                  <div className="rt" title={routineNames.get(h.session.title)}>
+                    {shortRoutine(routineNames.get(h.session.title))}
+                  </div>
+                )}
+                {h.actualName && h.actualName !== canonicalName && (
+                  <div className="alt-tag" style={useColors ? { background: colBg(h), color: colFg(h), outline: `1px solid ${colFg(h)}` } : undefined} title={names.get(h.actualName)}>
+                    {names.get(h.actualName)}
+                  </div>
+                )}
+              </div>
+            ))}
+            {rows.map(rIdx => (
+              <React.Fragment key={rIdx}>
+                <div className="hcell idx">{rIdx + 1}</div>
+                {oldDisplay.map(({ h, origIdx }) => {
+                  const set = h.ex.sets[rIdx];
+                  const isTop = set && tops[origIdx] && set === tops[origIdx];
+                  return (
+                    <div key={h.session.key + ':' + rIdx} className={'hcell set' + (isTop ? ' top' : '')} style={{ background: colBg(h) }}>
+                      <SetMini set={set} prev={null} isTop={isTop} />
+                    </div>
+                  );
+                })}
+              </React.Fragment>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="history-empty">
+          Solo una sesión registrada
+          <span>aún sin historial</span>
+        </div>
+      )}
     </div>
   );
 }
