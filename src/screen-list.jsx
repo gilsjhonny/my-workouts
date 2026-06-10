@@ -121,32 +121,34 @@ function ListScreen({ workouts, folders, onOpen, onOpenTemplate, onReimport, onL
       </div>
 
       {latestProgram ? (
-        <div className="hero fade-in" key={latestProgram.template.id} role="button" onClick={() => onOpenTemplate(latestProgram.folder.id, latestProgram.template.id)}>
-          <div className="hero-eyebrow">{latestProgram.folder.name}</div>
-          <h2>{latestProgram.template.name}</h2>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, margin: '0 0 14px' }}>
-            {latestProgram.template.slots.slice(0, 5).map(slot => (
-              <span key={slot} style={{
+        <div className="hero fade-in" onClick={() => onOpenTemplate(latestProgram.folder.id, latestProgram.template.id)} style={{ cursor: 'pointer' }}>
+          <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', opacity: 0.65, marginBottom: 6 }}>
+            {latestProgram.folder.name || 'Programa'}
+          </div>
+          <div style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.1, marginBottom: 14 }}>
+            {latestProgram.template.name || 'Sin nombre'}
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
+            {latestProgram.template.slots.slice(0, 5).map((slot, i) => (
+              <span key={i} style={{
                 fontSize: 12, fontWeight: 500,
-                background: 'rgba(0,0,0,0.12)', borderRadius: 999,
-                padding: '3px 10px', whiteSpace: 'nowrap',
+                background: 'rgba(0,0,0,0.15)', borderRadius: 999,
+                padding: '4px 11px', whiteSpace: 'nowrap',
+                maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis',
               }}>{slot}</span>
             ))}
             {latestProgram.template.slots.length > 5 && (
-              <span style={{
-                fontSize: 12, fontWeight: 500,
-                background: 'rgba(0,0,0,0.12)', borderRadius: 999,
-                padding: '3px 10px',
-              }}>+{latestProgram.template.slots.length - 5}</span>
+              <span style={{ fontSize: 12, fontWeight: 500, background: 'rgba(0,0,0,0.15)', borderRadius: 999, padding: '4px 11px' }}>
+                +{latestProgram.template.slots.length - 5}
+              </span>
             )}
           </div>
-          <div className="stats" style={{ marginBottom: 0 }}>
-            <span>{fmtRelative(latestProgram.sessionTime)}</span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(0,0,0,0.18)', borderRadius: 999, padding: '11px 14px 11px 20px' }}>
+            <span style={{ fontSize: 14, fontWeight: 500 }}>{fmtRelative(latestProgram.sessionTime)}</span>
+            <span style={{ background: 'rgba(255,255,255,0.25)', borderRadius: '50%', width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Icon.Chevron size={14} />
+            </span>
           </div>
-          <button className="cta">
-            <span>Ver progreso</span>
-            <span className="arrow"><Icon.Chevron size={14} /></span>
-          </button>
         </div>
       ) : mostRecent && (
         <div className="hero fade-in" key={mostRecent.key} role="button" onClick={() => onOpen(mostRecent.routineTitle)}>
