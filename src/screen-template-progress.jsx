@@ -187,11 +187,9 @@ function TemplateProgressScreen({ folder, template, workouts, onBack, onEdit, on
           <div key={slot}>
             <div style={{
               padding: '14px 16px 2px',
-              fontSize: 11,
+              fontSize: 15,
               fontWeight: 700,
-              color: 'var(--ink-2)',
-              textTransform: 'uppercase',
-              letterSpacing: '0.06em',
+              color: 'var(--ink)',
               display: 'flex',
               alignItems: 'center',
               gap: 8,
