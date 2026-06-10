@@ -442,7 +442,8 @@ export function FullHistoryGrid({ history, canonicalName, onOpenSession, hideRou
           </div>
           {rows.map(rIdx => {
             const set = display[lastIdx].ex.sets[rIdx];
-            const prev = display[lastIdx - 1]?.ex.sets[rIdx];
+            const sameExercise = display[lastIdx].actualName === display[lastIdx - 1]?.actualName;
+            const prev = sameExercise ? display[lastIdx - 1]?.ex.sets[rIdx] : null;
             const isTop = set && tops[lastIdx] && set === tops[lastIdx];
             return (
               <div key={'cur:' + rIdx} className={'hcell set cur' + (isTop ? ' top' : '')}>
