@@ -212,7 +212,7 @@ export function BottomTabs({ active, onChange }) {
         <span>Programas</span>
       </button>
       <button className={'tab' + (active === 'routines' ? ' active' : '')} onClick={() => switchTo('routines')}>
-        <Icon.Home size={20} />
+        <Icon.Dumbbell size={20} />
         <span>Historial</span>
       </button>
     </nav>
