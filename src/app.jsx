@@ -104,7 +104,7 @@ function App() {
           if (loaded?.length) {
             setSets(loaded);
             setFilename(cloud[NAME_KEY] || 'data.csv');
-            setRoute({ name: 'list' });
+            setRoute({ name: 'folders' });
           }
         }
       } catch (e) {

@@ -207,13 +207,13 @@ export function BottomTabs({ active, onChange }) {
   };
   return (
     <nav className="tabbar">
-      <button className={'tab' + (active === 'routines' ? ' active' : '')} onClick={() => switchTo('routines')}>
-        <Icon.Home size={20} />
-        <span>Historial</span>
-      </button>
       <button className={'tab' + (active === 'folders' ? ' active' : '')} onClick={() => switchTo('folders')}>
         <Icon.Folder size={20} />
         <span>Programas</span>
+      </button>
+      <button className={'tab' + (active === 'routines' ? ' active' : '')} onClick={() => switchTo('routines')}>
+        <Icon.Home size={20} />
+        <span>Historial</span>
       </button>
     </nav>
   );
