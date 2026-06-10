@@ -4,7 +4,7 @@ import { fmtRelative } from './parser.js';
 import { RoutineNamesContext } from './contexts.js';
 import { BottomTabs } from './screen-folders.jsx';
 
-function ListScreen({ workouts, onOpen, onReimport, onLogout, onClearAll, currentUser }) {
+function ListScreen({ workouts, folders, onOpen, onOpenTemplate, onReimport, onLogout, onClearAll, currentUser }) {
   const routineNames = React.useContext(RoutineNamesContext);
   const [query, setQuery] = React.useState('');
   const [showAll, setShowAll] = React.useState(false);
@@ -37,6 +37,27 @@ function ListScreen({ workouts, onOpen, onReimport, onLogout, onClearAll, curren
   const hiddenCount = filtered.length - visible.length;
 
   const mostRecent = allSessions[0];
+
+  const latestProgram = React.useMemo(() => {
+    if (!folders?.length) return null;
+    let best = null;
+    for (const folder of folders) {
+      for (const [sessionKey, { templateId }] of Object.entries(folder.assignments || {})) {
+        const template = (folder.templates || []).find(t => t.id === templateId);
+        if (!template) continue;
+        let sessionTime = null;
+        for (const w of workouts) {
+          const s = w.sessions.find(s => s.key === sessionKey);
+          if (s) { sessionTime = s.startTime; break; }
+        }
+        if (!sessionTime) continue;
+        if (!best || sessionTime > best.sessionTime) {
+          best = { folder, template, sessionTime };
+        }
+      }
+    }
+    return best;
+  }, [folders, workouts]);
 
   return (
     <div className="app-frame" data-screen-label="02 Lista de rutinas">
@@ -99,7 +120,23 @@ function ListScreen({ workouts, onOpen, onReimport, onLogout, onClearAll, curren
         <div className="eyebrow">Biblioteca</div>
       </div>
 
-      {mostRecent && (
+      {latestProgram ? (
+        <div className="hero fade-in" key={latestProgram.template.id} role="button" onClick={() => onOpenTemplate(latestProgram.folder.id, latestProgram.template.id)}>
+          <div className="hero-eyebrow">Último programa</div>
+          <h2>{latestProgram.template.name}</h2>
+          <div className="stats">
+            <span><span className="stat-num">{latestProgram.template.slots.length}</span> ejercicio{latestProgram.template.slots.length === 1 ? '' : 's'}</span>
+            <span>·</span>
+            <span>{latestProgram.folder.name}</span>
+            <span>·</span>
+            <span>{fmtRelative(latestProgram.sessionTime)}</span>
+          </div>
+          <button className="cta">
+            <span>Ver progreso</span>
+            <span className="arrow"><Icon.Chevron size={14} /></span>
+          </button>
+        </div>
+      ) : mostRecent && (
         <div className="hero fade-in" key={mostRecent.key} role="button" onClick={() => onOpen(mostRecent.routineTitle)}>
           <div className="hero-eyebrow">Última sesión</div>
           <h2>{routineNames.get(mostRecent.routineTitle)}</h2>

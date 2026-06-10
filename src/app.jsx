@@ -347,7 +347,9 @@ function App() {
     screen = (
       <ListScreen
         workouts={workouts}
+        folders={folders}
         onOpen={(title) => setRoute({ name: 'detail', title })}
+        onOpenTemplate={(folderId, templateId) => setRoute({ name: 'template-progress', folderId, templateId })}
         onReimport={onReimport}
         currentUser={currentUser}
         onLogout={onLogout}
