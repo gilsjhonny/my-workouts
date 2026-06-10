@@ -456,7 +456,7 @@ export function FullHistoryGrid({ history, canonicalName, onOpenSession, hideRou
 
       {display.length > 1 ? (
         <div className="history-scroll">
-          <div className="history-grid old" style={{ gridTemplateColumns: `28px repeat(${display.length - 1}, minmax(96px, 130px))` }}>
+          <div className="history-grid old" style={{ gridTemplateColumns: `28px repeat(${display.length - 1}, minmax(96px, 160px))` }}>
             <div className="hcell idx">#</div>
             {oldDisplay.map(({ h }) => (
               <div
