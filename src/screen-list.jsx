@@ -122,13 +122,25 @@ function ListScreen({ workouts, folders, onOpen, onOpenTemplate, onReimport, onL
 
       {latestProgram ? (
         <div className="hero fade-in" key={latestProgram.template.id} role="button" onClick={() => onOpenTemplate(latestProgram.folder.id, latestProgram.template.id)}>
-          <div className="hero-eyebrow">Último programa</div>
+          <div className="hero-eyebrow">{latestProgram.folder.name}</div>
           <h2>{latestProgram.template.name}</h2>
-          <div className="stats">
-            <span><span className="stat-num">{latestProgram.template.slots.length}</span> ejercicio{latestProgram.template.slots.length === 1 ? '' : 's'}</span>
-            <span>·</span>
-            <span>{latestProgram.folder.name}</span>
-            <span>·</span>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, margin: '0 0 14px' }}>
+            {latestProgram.template.slots.slice(0, 5).map(slot => (
+              <span key={slot} style={{
+                fontSize: 12, fontWeight: 500,
+                background: 'rgba(0,0,0,0.12)', borderRadius: 999,
+                padding: '3px 10px', whiteSpace: 'nowrap',
+              }}>{slot}</span>
+            ))}
+            {latestProgram.template.slots.length > 5 && (
+              <span style={{
+                fontSize: 12, fontWeight: 500,
+                background: 'rgba(0,0,0,0.12)', borderRadius: 999,
+                padding: '3px 10px',
+              }}>+{latestProgram.template.slots.length - 5}</span>
+            )}
+          </div>
+          <div className="stats" style={{ marginBottom: 0 }}>
             <span>{fmtRelative(latestProgram.sessionTime)}</span>
           </div>
           <button className="cta">
