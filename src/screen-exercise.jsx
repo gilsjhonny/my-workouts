@@ -391,7 +391,7 @@ function buildColorMap(display) {
   return map;
 }
 
-export function FullHistoryGrid({ history, canonicalName }) {
+export function FullHistoryGrid({ history, canonicalName, onOpenSession }) {
   const names = React.useContext(ExerciseNamesContext);
   const routineNames = React.useContext(RoutineNamesContext);
   const display = history.slice().reverse();
@@ -419,7 +419,12 @@ export function FullHistoryGrid({ history, canonicalName }) {
           <div className="history-grid old" style={{ gridTemplateColumns: `28px repeat(${display.length - 1}, minmax(96px, 1fr))` }}>
             <div className="hcell idx">#</div>
             {display.slice(0, lastIdx).map((h) => (
-              <div key={h.session.key} className="hcell head" style={{ background: colBg(h) }}>
+              <div
+                key={h.session.key}
+                className="hcell head"
+                style={{ background: colBg(h), cursor: onOpenSession ? 'pointer' : undefined }}
+                onClick={onOpenSession ? () => onOpenSession(h.session.key, h.session.title) : undefined}
+              >
                 <div className="date">{h.session.startTime.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}</div>
                 <div className="yr">{h.session.startTime.getFullYear()}</div>
                 <div className="rt" title={routineNames.get(h.session.title)}>
@@ -457,7 +462,11 @@ export function FullHistoryGrid({ history, canonicalName }) {
 
       <div className="history-current">
         <div className="history-grid cur-grid" style={{ gridTemplateColumns: 'minmax(108px, 1fr)' }}>
-          <div className="hcell head cur">
+          <div
+            className="hcell head cur"
+            style={{ cursor: onOpenSession ? 'pointer' : undefined }}
+            onClick={onOpenSession ? () => onOpenSession(display[lastIdx].session.key, display[lastIdx].session.title) : undefined}
+          >
             <div className="date">{display[lastIdx].session.startTime.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}</div>
             <div className="yr">{display[lastIdx].session.startTime.getFullYear()}</div>
             <div className="rt" style={{ color: 'rgba(20,22,15,0.6)' }}>{shortRoutine(routineNames.get(display[lastIdx].session.title))}</div>
