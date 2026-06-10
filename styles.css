@@ -512,7 +512,10 @@ button { cursor: pointer; border: 0; background: transparent; }
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
+  display: flex;
+  align-items: flex-start;
 }
+.history-scroll .history-grid { margin-left: auto; }
 .history-scroll::-webkit-scrollbar { height: 6px; }
 .history-scroll::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: 3px; }
 
