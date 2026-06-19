@@ -107,6 +107,8 @@ function SessionPicker({ workouts, assignedKeys, filteredTitles, templateName, o
 
 function TemplateProgressScreen({ folder, template, workouts, onBack, onEdit, onAddSession, onOpenSession, onViewSession, onRemoveSession, openPicker }) {
   const [picking, setPicking] = React.useState(openPicker || false);
+  const [managing, setManaging] = React.useState(false);
+  const routineNames = React.useContext(RoutineNamesContext);
 
   const slotHistories = React.useMemo(
     () => buildSlotHistories(template, folder, workouts),
@@ -175,36 +177,59 @@ function TemplateProgressScreen({ folder, template, workouts, onBack, onEdit, on
         </div>
       </div>
 
-      <div style={{ padding: '0 16px 12px' }}>
+      <div style={{ padding: '0 16px 12px', display: 'flex', gap: 8 }}>
         <button
           className="folder-create-btn"
+          style={{ flex: 1 }}
           onClick={() => setPicking(true)}
         >
           <Icon.Plus size={16} />
           <span>Añadir sesión</span>
         </button>
+        {assignedSessions.length > 0 && (
+          <button
+            className="folder-create-btn"
+            style={{ flex: 1 }}
+            onClick={() => setManaging(true)}
+          >
+            <Icon.Pencil size={14} />
+            <span>Editar sesiones</span>
+          </button>
+        )}
       </div>
 
-      {assignedSessions.length > 0 && (
-        <div style={{ marginBottom: 8 }}>
-          <div style={{ padding: '0 16px 6px', fontSize: 11, fontWeight: 600, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-            Sesiones asignadas
-          </div>
-          {assignedSessions.map(({ sessionKey, session, routineTitle }) => (
-            <div key={sessionKey} style={{ display: 'flex', alignItems: 'center', padding: '10px 16px', borderBottom: '1px solid var(--line)', gap: 12 }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 600 }}>{fmtRelative(session.startTime)}</div>
-                <div style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 1 }}>{session.exercises.length} ejercicios</div>
-              </div>
-              <button
-                onClick={() => onRemoveSession(sessionKey)}
-                style={{ background: 'none', border: 'none', color: 'var(--ink-3)', cursor: 'pointer', padding: 6, flexShrink: 0 }}
-                aria-label="quitar sesión"
-              >
-                <Icon.Trash size={15} />
-              </button>
+      {managing && (
+        <div
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 100, display: 'flex', alignItems: 'flex-end' }}
+          onClick={() => setManaging(false)}
+        >
+          <div
+            style={{ background: 'var(--surface)', borderRadius: '16px 16px 0 0', width: '100%', maxHeight: '70vh', display: 'flex', flexDirection: 'column' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', padding: '16px 16px 8px', borderBottom: '1px solid var(--line)' }}>
+              <div style={{ flex: 1, fontSize: 15, fontWeight: 700 }}>Sesiones asignadas</div>
+              <button onClick={() => setManaging(false)} style={{ background: 'none', border: 'none', color: 'var(--ink-3)', cursor: 'pointer', fontSize: 13, padding: '4px 0' }}>Cerrar</button>
             </div>
-          ))}
+            <div style={{ overflowY: 'auto', flex: 1 }}>
+              {assignedSessions.map(({ sessionKey, session, routineTitle }) => (
+                <div key={sessionKey} style={{ display: 'flex', alignItems: 'center', padding: '12px 16px', borderBottom: '1px solid var(--line)', gap: 12 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 14, fontWeight: 600 }}>{fmtRelative(session.startTime)}</div>
+                    <div style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 2 }}>{routineNames.get(routineTitle)} · {session.exercises.length} ejercicios</div>
+                  </div>
+                  <button
+                    onClick={() => { onRemoveSession(sessionKey); if (assignedSessions.length === 1) setManaging(false); }}
+                    style={{ background: 'none', border: 'none', color: 'var(--ink-3)', cursor: 'pointer', padding: 6, flexShrink: 0 }}
+                    aria-label="quitar sesión"
+                  >
+                    <Icon.Trash size={15} />
+                  </button>
+                </div>
+              ))}
+              <div style={{ height: 'env(safe-area-inset-bottom, 16px)' }} />
+            </div>
+          </div>
         </div>
       )}
 
