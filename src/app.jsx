@@ -168,6 +168,14 @@ function App() {
       : f
     ));
   }
+  function removeAssignment(folderId, sessionKey) {
+    persistFolders(folders.map(f => {
+      if (f.id !== folderId) return f;
+      const next = { ...(f.assignments || {}) };
+      delete next[sessionKey];
+      return { ...f, assignments: next };
+    }));
+  }
 
   function persistAlternates(next) {
     setAlternatesState(next);
@@ -419,6 +427,7 @@ function App() {
         onAddSession={(sessionKey, routineTitle) => setRoute({ name: 'slot-mapping', folderId: route.folderId, sessionKey, routineTitle, from: { name: 'template-progress', folderId: route.folderId, templateId: route.templateId } })}
         onOpenSession={(sessionKey, routineTitle) => setRoute({ name: 'detail', title: routineTitle, from: { name: 'template-progress', folderId: route.folderId, templateId: route.templateId, openPicker: true } })}
         onViewSession={(sessionKey, routineTitle) => setRoute({ name: 'detail', title: routineTitle, from: { name: 'template-progress', folderId: route.folderId, templateId: route.templateId } })}
+        onRemoveSession={(sessionKey) => removeAssignment(route.folderId, sessionKey)}
       />
     );
   } else if (route.name === 'template-edit') {

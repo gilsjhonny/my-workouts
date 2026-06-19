@@ -105,7 +105,7 @@ function SessionPicker({ workouts, assignedKeys, filteredTitles, templateName, o
   );
 }
 
-function TemplateProgressScreen({ folder, template, workouts, onBack, onEdit, onAddSession, onOpenSession, onViewSession, openPicker }) {
+function TemplateProgressScreen({ folder, template, workouts, onBack, onEdit, onAddSession, onOpenSession, onViewSession, onRemoveSession, openPicker }) {
   const [picking, setPicking] = React.useState(openPicker || false);
 
   const slotHistories = React.useMemo(
@@ -114,6 +114,18 @@ function TemplateProgressScreen({ folder, template, workouts, onBack, onEdit, on
   );
 
   const assignedCount = Object.values(folder.assignments || {}).filter(a => a.templateId === template.id).length;
+
+  const assignedSessions = React.useMemo(() => {
+    const result = [];
+    Object.entries(folder.assignments || {}).forEach(([sessionKey, { templateId }]) => {
+      if (templateId !== template.id) return;
+      for (const w of workouts) {
+        const s = w.sessions.find(s => s.key === sessionKey);
+        if (s) { result.push({ sessionKey, session: s, routineTitle: w.title }); break; }
+      }
+    });
+    return result.sort((a, b) => b.session.startTime - a.session.startTime);
+  }, [folder.assignments, template.id, workouts]);
 
   const { assignedKeys, filteredTitles } = React.useMemo(() => {
     const keys = new Set();
@@ -172,6 +184,29 @@ function TemplateProgressScreen({ folder, template, workouts, onBack, onEdit, on
           <span>Añadir sesión</span>
         </button>
       </div>
+
+      {assignedSessions.length > 0 && (
+        <div style={{ marginBottom: 8 }}>
+          <div style={{ padding: '0 16px 6px', fontSize: 11, fontWeight: 600, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            Sesiones asignadas
+          </div>
+          {assignedSessions.map(({ sessionKey, session, routineTitle }) => (
+            <div key={sessionKey} style={{ display: 'flex', alignItems: 'center', padding: '10px 16px', borderBottom: '1px solid var(--line)', gap: 12 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 14, fontWeight: 600 }}>{fmtRelative(session.startTime)}</div>
+                <div style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 1 }}>{session.exercises.length} ejercicios</div>
+              </div>
+              <button
+                onClick={() => onRemoveSession(sessionKey)}
+                style={{ background: 'none', border: 'none', color: 'var(--ink-3)', cursor: 'pointer', padding: 6, flexShrink: 0 }}
+                aria-label="quitar sesión"
+              >
+                <Icon.Trash size={15} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
 
       {assignedCount === 0 && (
         <div className="empty" style={{ paddingTop: 16 }}>
